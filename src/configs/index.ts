@@ -1,3 +1,6 @@
+/**
+ * Основные настройки проекта
+ **/
 export default {
     bot: {
         connect: {

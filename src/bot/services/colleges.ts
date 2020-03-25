@@ -1,12 +1,13 @@
 import axios from 'axios'
 import configs from "../../configs";
+import {College} from "../../core/orm/models/College";
 
 /**
  * Отправляет запрос по внутренему серверу для получения списка учебных учреждений
- * @param _params - Принимает json с условиями выборки
- * @returns Возвращяет массив с учебными учреждениями
+ * @param _params {object} Условия выборки
+ * @returns {Promise<Array<College>>} Массив с учебными учреждениями
  **/
-export const getCollege = async (_params: object = {}) => {
+export const getCollege = async (_params: object = {}): Promise<Array<College>> => {
     try {
         const res = await axios.get(`${configs.database.uri}/api/college`, {
             params: _params
@@ -19,11 +20,10 @@ export const getCollege = async (_params: object = {}) => {
 
 /**
  * Отправляет запрос по внутренему серверу для получения расписания занятий
- * @param _params - Принимает json с инфорамцией о пользователе и дате
- * @returns Возвращяет строку - преобразованное расписание
- * @beta
+ * @param _params {object} Входные данные
+ * @returns {Promise<string>} Преобразованное в строку расписание
  **/
-export const getTimetable = async (_params: object = {}) => {
+export const getTimetable = async (_params: object = {}):Promise<string> => {
     try {
         const res = await axios.get(`${configs.database.uri}/api/timetable`, {
             params: _params
@@ -36,14 +36,13 @@ export const getTimetable = async (_params: object = {}) => {
     }
 }
 
-
 /**
  * Преобразует объект в тип строка
- * @param _object - Принимает json с расписанием
- * @returns Возвращяет строку - преобразованное расписание
+ * @param _object {object} - Объект с расписанием
+ * @returns {string} Преобразованное в строку расписание
  * @beta
  **/
-export const toMessageTimetable = (_object: any) => {
+export const toMessageTimetable = (_object: object): string => {
     const tp = (_obj): string => {
         let msg = ""
         for (let key in _obj) {
@@ -56,11 +55,11 @@ export const toMessageTimetable = (_object: any) => {
     }
 
     if (Array.isArray(_object)) {
-        let msgs = ""
+        let message = ""
         for (let obj of _object) {
-            msgs += tp(obj) + '\n\n'
+            message += tp(obj) + '\n\n'
         }
-        return msgs
+        return message
     } else {
         return tp(_object)
     }

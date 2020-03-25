@@ -1,28 +1,24 @@
 import { DateTime } from 'luxon';
 
-
 export default class Luxon {
 
     /**
-     * @public
      * Переменная с текущей датой
      **/
     public local: any;
 
     /**
      * Расширение функционала времени
-     * @param zone - строка содержащая временную зону
-     * @param date - устанавливаемая дата
+     * @param zone {string} - Строка со временой зоной
      **/
-    constructor(zone:string = "Asia/Yekaterinburg", date: Date = new Date()) {
+    constructor(zone:string = "Asia/Yekaterinburg") {
         this.local = DateTime.local().setZone(zone)
     }
 
     /**
-     * @public
      * Добавляет указанное количество часов к текущему времени
-     * @param _hours - число, колличество часов
-     * @returns Возвращяет Luxon
+     * @param _hours {number} Колличество часов
+     * @returns {Luxon} Luxon
      **/
     public add(_hours: number): Luxon {
         this.local = this.local.plus({hours: _hours})
@@ -30,10 +26,9 @@ export default class Luxon {
     }
 
     /**
-     * @public
      * Убавляет указанное количество часов у текущего времени
-     * @param _hours - число, колличество часов
-     * @returns Возвращяет Luxon
+     * @param _hours {number} Колличество часов
+     * @returns {Luxon} Luxon
      **/
     public subtract(_hours: number): Luxon {
         this.local = this.local.minus({hours: _hours})
@@ -41,17 +36,15 @@ export default class Luxon {
     }
 
     /**
-     * @public
      * Проверяет какой день недели в указаную дату
-     * @returns Возвращяет номер дня недели от 1 до 7
+     * @returns {number} Номер дня недели от 1 до 7
      **/
     public week = ():number => this.local.weekday
 
     /**
-     * @public
      * Форматирует дату к указаному шаблону
-     * @param format - строка, формат времени
-     * @returns Возвращает отформатированную дату
+     * @param format {string} Строка формата времени
+     * @returns {string} Отформатированная в строку дата
      **/
     public pin = (format: string = 'dd.LL.yyyy'): string => this.local.toFormat(format)
 }

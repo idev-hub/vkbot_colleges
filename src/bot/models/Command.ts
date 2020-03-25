@@ -1,23 +1,15 @@
 import {bot} from '../Bot'
 
-class Command {
+export default class Command {
+
     /**
      * Класс обёртка для создания комманд BotVK
-     * @param name - Имя комманды.
-     * @param conditions - Массив со строками. Используется для создания текстовых комманд.
-     * @param handle - Callback функиця. Описывает функцию при вызове комманды.
+     * @param name {string} - Имя комманды.
+     * @param conditions {Array<string>>} - Массив со строками. Используется для создания текстовых комманд.
+     * @param handle {any}
      * @beta
      **/
-    constructor(name, conditions, handle) {
-        if (typeof handle !== 'function') {
-            handle = conditions;
-            conditions = [`${name}`]
-        }
-
-        if (!Array.isArray(conditions)) {
-            conditions = [conditions]
-        }
-
+    constructor(name: string, conditions: Array<string>, handle: any) {
         bot.VK.updates.hear(
             [
                 (text, {state}) => (
@@ -28,6 +20,5 @@ class Command {
             handle
         )
     }
-}
 
-export default Command
+}

@@ -3,13 +3,10 @@ import {getRepository, Like} from "typeorm";
 import {College} from "../../core/orm/models/College";
 import Typify from "../../utils/Typify";
 import axios from "axios"
-
+import {User} from "../../core/orm/models/User";
 
 /**
  * GET запрос на получение учебных учреждений
- * @param req.query - который содержит в себе параметры для фильтрации выдаваемой информации
- * @returns Возвращяет массив с информацией о учебных учреждениях
- * @beta
  **/
 server.restify.get('/api/college', async (req, res, next) => {
     let where = []
@@ -19,59 +16,49 @@ server.restify.get('/api/college', async (req, res, next) => {
 
     let collegeRepository = await getRepository(College)
 
-    let json: any = await collegeRepository.find({
-        where: where
-    })
+    let json: any = await collegeRepository.find({ where: where })
 
-    await res.json(json)
-    return next()
+    return res.json(json)
 })
 
 /**
  * GET запрос на получение расписания занятий
- * @param req.query - который содержит в себе параметры о текущем пользователе и дате
- * @returns Возвращяет типизированый массив полученных дисциплин
- * @beta
  **/
-server.restify.get('/api/timetable', async (req, res, next) => {
-    if (!req.query.user) throw "Не передана информация о пользователе"
-    if (!req.query.date) throw "Не передана дата"
+server.restify.get('/api/timetable', async (req, res) => {
+    if (!req.query.user) throw {name: "SyntaxError", message: "Не передана информация о пользователе"}
+    if (!req.query.date) throw {name: "SyntaxError", message: "Не передана дата"}
 
     const user = JSON.parse(req.query.user)
     const date = req.query.date
     const result = user.college.params.type === "jsonParse" ? await jsonParse(user, date) : await bodyParse(user, date)
-    await res.json(result)
-
-    return next()
+    return res.json(result)
 })
 
-
 /**
- * Функция на получение расписания занятий через метод REST API к источнику
- * @param user - содержит всю информацию о пользователе
- * @param date - строка с датой
- * @returns Возвращяет типизированый массив полученных дисциплин
- * @beta
+ * Функция получение расписания занятий через API к источнику
+ * @param user {User} - Пользователь
+ * @param date {string} - Дата
+ * @returns {Promise<Array<object>>} Массив расписания учебного учреждения
  **/
-const jsonParse = async (user, date: string) => {
+const jsonParse = async (user: User, date: string): Promise<Array<object>> => {
 
-    let schemeParams = user.college.params.scheme.params
+    const scheme = user['college']['params']['scheme']['params']
+    const params = {}
 
-    let params = {}
-    for (let param in schemeParams) {
-        if (schemeParams[param] === "d") params[param] = date
-        else if (schemeParams[param] === "g") params[param] = user.group
-    }
+    Object.keys(scheme).map((param) => {
+        if (scheme[param] === "d") params[param] = date
+        else if (scheme[param] === "g") params[param] = user.group
+    })
 
     const json = await axios({
-        method: user.college.params.scheme.method,
-        url: user.college.params.api,
+        method: user['college']['params']['scheme']['method'],
+        url: user['college']['params']['api'],
         params: params,
         responseType: 'json'
     })
 
     if (!json.data) return null
-    return new Typify(json.data, user.college.params.scheme.toJson).typifyJson()
+    return new Typify(json.data, user['college']['params']['scheme']['toJson']).typifyJson()
 
 }
 

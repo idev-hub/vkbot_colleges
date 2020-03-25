@@ -1,5 +1,5 @@
 import Command from "../models/Command"
-import {Keyboard} from "vk-io";
+import {Context, Keyboard} from "vk-io";
 import {isLogin} from "./users";
 import {getTimetable} from "./colleges";
 import Luxon from "../../utils/Luxon"
@@ -7,11 +7,11 @@ import Luxon from "../../utils/Luxon"
 
 /**
  * Шаблон для комманды расписания
- * @param ctx - Контекст
- * @param date - Moment дата
- * @returns Возвращяет готовую строку отправляемую пользователю
+ * @param ctx {Context}
+ * @param date {Luxon}
+ * @returns {Promise<string>}
  **/
-const timetableTemplate = async (ctx, date: Luxon = new Luxon()) => {
+const timetableTemplate = async (ctx: Context, date: Luxon = new Luxon()): Promise<string> => {
     const {user} = ctx.session
 
     return (date.week() !== 7) ? await getTimetable({
@@ -24,7 +24,7 @@ const timetableTemplate = async (ctx, date: Luxon = new Luxon()) => {
 /**
  * Команда получения расписания за ВЧЕРА
  **/
-new Command('yesterday', ['вчера', 'Вчера', 'в'], async (ctx) => {
+new Command('yesterday', ['вчера', 'Вчера', 'в'], async (ctx: Context) => {
     let date = new Luxon().subtract(24)
     const template = await timetableTemplate(ctx, date)
 
@@ -51,7 +51,7 @@ new Command('yesterday', ['вчера', 'Вчера', 'в'], async (ctx) => {
 /**
  * Команда получения расписания за СЕГОДНЯ
  **/
-new Command('today', ['сегодня', 'Сегодня', 'с'], async (ctx) => {
+new Command('today', ['сегодня', 'Сегодня', 'с'], async (ctx: Context) => {
     let date = new Luxon()
     const template = await timetableTemplate(ctx, date)
 
@@ -78,7 +78,7 @@ new Command('today', ['сегодня', 'Сегодня', 'с'], async (ctx) => 
 /**
  * Команда получения расписания на ЗАВТРА
  **/
-new Command('tomorrow', ['завтра', 'Завтра', 'з'], async (ctx) => {
+new Command('tomorrow', ['завтра', 'Завтра', 'з'], async (ctx: Context) => {
     let date = new Luxon().add(24)
     const template = await timetableTemplate(ctx, date)
 
@@ -105,7 +105,7 @@ new Command('tomorrow', ['завтра', 'Завтра', 'з'], async (ctx) => {
 /**
  * Команда получения расписания на ПОСЛЕЗАВТРА
  **/
-new Command('afterTomorrow', ['послезавтра', 'Послезавтра', 'пз'], async (ctx) => {
+new Command('afterTomorrow', ['послезавтра', 'Послезавтра', 'пз'], async (ctx: Context) => {
     let date = new Luxon().add(48)
     const template = await timetableTemplate(ctx, date)
 
@@ -132,19 +132,19 @@ new Command('afterTomorrow', ['послезавтра', 'Послезавтра'
 /**
  * Команда перехода на сцену с регистрацией ( работает как функция обновления и создания данных о пользователе )
  **/
-new Command('register', ['/update'], (ctx) => ctx.scene.enter('registerScene'))
+new Command('register', ['/update'], (ctx: Context) => ctx.scene.enter('registerScene'))
 
 
 /**
  * Команда перехода на сцену с настройками пользователя
  **/
-new Command('settings', ['/settings'], (ctx) => ctx.scene.enter('settingsScene'))
+new Command('settings', ['/settings'], (ctx: Context) => ctx.scene.enter('settingsScene'))
 
 
 /**
  * Команда выхода из всех сцен
  **/
-new Command('toMain', ['/main'], async (ctx) => {
+new Command('toMain', ['/main'], async (ctx: Context) => {
     await ctx.scene.leave()
 
     let user = await isLogin(ctx)

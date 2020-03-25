@@ -1,12 +1,13 @@
 import axios from "axios";
 import configs from "../../configs";
+import {City} from "../../core/orm/models/City";
 
 /**
  * Отправляет запрос по внутренему серверу для получения списка городов
- * @param _params - Принимает json с условиями выборки
- * @returns Возвращяет массив с городами
+ * @param _params {object} Условия выборки
+ * @returns {Promise<Array<City>>} Массив с городами
  **/
-export const getCity = async (_params: object = {}) => {
+export const getCity = async (_params: object = {}): Promise<Array<City>> => {
     try {
         const res = await axios.get(`${configs.database.uri}/api/city`, {
             params: _params
@@ -19,10 +20,10 @@ export const getCity = async (_params: object = {}) => {
 
 /**
  * Отправляет запрос по внутренему серверу для создания нового города
- * @param _body - Принимает json с телом запроса
- * @returns В случае успеха возвращяет созданный город
+ * @param _body {object} Взодные данные
+ * @returns {Promise<City>} Созданный город
  **/
-export const addCity = async (_body: object) => {
+export const addCity = async (_body: object): Promise<City> => {
     try {
         const res = await axios.post(`${configs.database.uri}/api/city`, _body)
         return res.data
