@@ -1,0 +1,17 @@
+{
+    "type": "mysql",
+    "host": "z92271qa.beget.tech",
+    "port": 3306,
+    "username": "z92271qa_tablevk",
+    "password": "7vg7tek7sG",
+    "database": "z92271qa_tablevk",
+    "entities": [
+        "dist/database/entity/**/*.js"
+    ],
+    "cli": {
+        "entitiesDir": "src/database/entity"
+    },
+    "synchronize": false,
+    "dropSchema": false,
+    "logging": true
+}

@@ -1,0 +1,39 @@
+{
+  "name": "vkbot_colleges",
+  "version": "0.0.1",
+  "description": "Получайте актуальное расписание в личные сообщения в Вконтакте",
+  "main": "dist/index.js",
+  "scripts": {
+    "watch": "tsc -watch",
+    "start": "nodemon dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/idev-hub/vkbot_colleges.git"
+  },
+  "author": "devis.su",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/idev-hub/vkbot_colleges/issues"
+  },
+  "homepage": "https://github.com/idev-hub/vkbot_colleges#readme",
+  "dependencies": {
+    "@vk-io/scenes": "0.0.0-alpha.5",
+    "@vk-io/session": "0.0.0-alpha.3",
+    "axios": "^0.19.2",
+    "moment": "^2.24.0",
+    "moment-timezone": "^0.5.28",
+    "mysql2": "^2.1.0",
+    "reflect-metadata": "^0.1.13",
+    "restify": "^8.5.1",
+    "sequelize": "^5.21.5",
+    "typeorm": "^0.2.24",
+    "vk-io": "^4.0.0-rc.30"
+  },
+  "devDependencies": {
+    "@types/bluebird": "^3.5.30",
+    "@types/node": "^13.9.1",
+    "nodemon": "^2.0.2",
+    "typescript": "^3.8.3"
+  }
+}
