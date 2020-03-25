@@ -3,11 +3,17 @@ import configs from '../configs'
 
 export class Server {
     public restify: any
+
     constructor() {
         this.restify = restify.createServer()
-
     }
 
+    /**
+     * Выполняет middleware`s перед запуском основного скрипта
+     * Импортирует модели
+     * Запускает базу данных
+     * Записывает в configs ссылку для обращения к внутренему api
+     **/
     public run = async () => {
 
         this.restify.use(restify['plugins'].queryParser());

@@ -1,49 +1,73 @@
 import {server} from "../Server";
-import {getRepository, Like} from "typeorm";
-import {City} from "../../database/entity/city";
+import {getCustomRepository, getRepository, Like} from "typeorm";
+import {City} from "../../core/orm/models/City";
+import {CityRepository} from "../../core/orm/repositories/CityRepository";
 
-// GET - By Name OR ID OR ALL Cities
+/**
+ * GET обработчик на получение списка городов
+ * @param req.query - который содержит в себе параметры для фильтрации выдаваемой информации
+ * @returns Возвращяет массив с городами
+ * @beta
+ **/
 server.restify.get('/api/city', async (req, res, next) => {
-    let where = []
+    try {
 
-    if (req.query.name) where.push({name: Like(`%${req.query.name}%`)})
-    if (req.query) where.push(req.query)
+        const where = []
 
-    let cityRepository = await getRepository(City)
+        if (req.query.name) where.push({name: Like(`%${req.query.name}%`)})
+        if (req.query) where.push(req.query)
 
-    let json = await cityRepository.find({
-        where: where
-    })
+        const cityRepository = await getRepository(City)
 
-    await res.json(json || [])
-    return next()
+        return res.json(await cityRepository.find({ where: where }))
+
+    } catch (error) {
+
+        return res.json({error})
+
+    }
+})
+
+/**
+ * Создание нового города
+ * @param req.body - который содержит в себе данные для создания города
+ * @returns Возвращяет созданный город
+ **/
+server.restify.post('/api/city', async (req, res, next) => {
+    try {
+
+        const cityRepository = await getCustomRepository(CityRepository)
+        const city = await cityRepository.search({ where: { name: req.body.name } })
+
+        if (city.length > 0) throw { name: "SyntaxError", message: "The record already exists in the orm." }
+
+        return res.json(await cityRepository.create(req.body))
+
+    } catch (error) {
+
+        return res.json({error})
+
+    }
 })
 
 
-// POST - Add city
-server.restify.post('/api/city', async (req, res, next) => {
 
+/**
+ * DELETE обработчик на удаление города
+ * @param req.query - который содержит в себе условия для поиска
+ * @returns В случае успеха, возвращяет город, что был удалён
+ **/
+server.restify.del('/api/city', async (req, res, next) => {
     try {
 
-        let cityRepository = await getRepository(City)
+        const cityRepository = await getCustomRepository(CityRepository)
+        return res.json(await cityRepository.remove({
+            where: req.query
+        }))
 
-        const city = await cityRepository.find({
-            where: {
-                name: req.body.name
-            }
-        })
-        if (city.length > 0) {
-            throw "Запись уже существует в базе данных"
-        } else {
-            const newCity = await cityRepository.create(req.body)
-            res.json(await cityRepository.save(newCity))
-        }
+    } catch (error) {
 
-    } catch (err) {
-        console.error(err)
-        res.json(typeof err == "object"?err:{error: err})
+        return res.json({error})
+
     }
-
-    return next()
-
 })

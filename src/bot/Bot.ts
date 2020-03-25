@@ -5,23 +5,23 @@ import {SceneManager} from '@vk-io/scenes'
 import configs from "../configs"
 import {isLogin} from "./services/users";
 
-class Bot {
+export default class Bot {
 
-    public VK
-    public sessionManager
-    public sceneManager
+    public VK: VK
+    public sessionManager: SessionManager
+    public sceneManager: SceneManager
 
-    constructor() {
-        this.VK = new VK({
-            token: configs.vkBot.access_token
-        })
+    /**
+     * Главный класс бота для Вконтакте. Инициализирует и подписываеться на прослушку всех middleware`s
+     **/
+    constructor(_options: object) {
+        this.VK = new VK(_options)
         this.sessionManager = new SessionManager()
         this.sceneManager = new SceneManager()
 
 
         // Проверяем на ВХОДЯЩЕЕ сообщение, если всё хорошо переходим к следующему middleware
         this.VK.updates.on('message', (ctx, next) => ctx.isOutbox ? undefined : next())
-
 
         this.VK.updates.on('message', this.sessionManager.middleware)
         this.VK.updates.on('message', this.sceneManager.middleware)
@@ -42,7 +42,6 @@ class Bot {
         this.VK.updates.on('message', async (ctx, next) => {
             try {
                 const user = await isLogin(ctx)
-
                 if (user != null) {
                     ctx.session.user = user
                     return next()
@@ -53,26 +52,25 @@ class Bot {
                     "Меня создали для упрощения твоего бытия в учебном учреждении. Моя основная задача - это присылать тебе расписание занятий на выбраный тобою день. \n\n" +
                     "Тут всё просто, сперва нужно ответить на несколько вопросов, не бойся. Это быстро!")
                 return ctx.scene.enter('registerScene')
-            } catch (err) {
-                console.error(err)
-                await ctx.reply('Во время получения данных вашей авторизации произошла ошибка. \n\n' + err)
-                return undefined
+            } catch (error) {
+
+                return ctx.reply('Во время получения данных вашей авторизации произошла ошибка. \n\n' + error)
+
             }
         })
     }
 
+    /**
+     * @public
+     * Функция запуска бота.
+     * Импортирует все необходимый файлы, после чего запускает LongPolling
+     **/
     public run = async () => {
+        await import('./services/scenes')
+        await import('./services/commands')
 
-        // Импортируем все необходимые модули и конструкторы перед запуском бота
-        import('./services/scenes')
-        import('./services/commands')
-
-        try {
-            await this.VK.updates.startPolling() // Запускаем бота
-        } catch (err) {
-            return err
-        }
+        await this.VK.updates.startPolling()
     }
 }
 
-export const bot = new Bot();
+export const bot = new Bot(configs.bot.connect)

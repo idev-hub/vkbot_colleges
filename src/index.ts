@@ -1,10 +1,14 @@
-import {bot} from "./bot/Bot"
+import Storage from "./core/orm/Storage"
 import {server} from "./server/Server";
-import {database} from "./database/Database";
+import {bot} from "./bot/Bot";
 
-const appStart = async () => { // Функция по поочередному запуску проекта
+
+/**
+ * Функция по поочередному запуску проекта
+ **/
+const appStart = async () => {
     try {
-        await database.connect() // Запускаем базу данных
+        await new Storage().connect() // Запускаем базу данных
         await server.run() // Запускаем сервер
         await bot.run() // Запускаем бота
     } catch (err) {

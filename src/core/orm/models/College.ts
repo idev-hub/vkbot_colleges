@@ -1,6 +1,10 @@
-import {Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, ManyToOne} from "typeorm"
-import {City} from "./city"
+import {Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn} from "typeorm"
+import {City} from "./City"
 
+/**
+ * Модель колледжа
+ * @beta
+ **/
 @Entity()
 export class College {
 

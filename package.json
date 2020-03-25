@@ -21,6 +21,7 @@
     "@vk-io/scenes": "0.0.0-alpha.5",
     "@vk-io/session": "0.0.0-alpha.3",
     "axios": "^0.19.2",
+    "luxon": "^1.22.0",
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.28",
     "mysql2": "^2.1.0",

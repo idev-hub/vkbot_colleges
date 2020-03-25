@@ -1,6 +1,6 @@
-import {College} from "../entity/college"
+import {College} from "../models/College"
 import {AbstractRepository, EntityRepository} from "typeorm"
-import {City} from "../entity/city"
+import {City} from "../models/City"
 
 @EntityRepository(College)
 export class CollegeRepository extends AbstractRepository<College> {

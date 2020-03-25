@@ -1,22 +1,26 @@
-import {Connection, createConnection, getCustomRepository, getConnectionOptions} from "typeorm";
-import {CityRepository} from "./repository/cityRepository";
-import {CollegeRepository} from "./repository/collegeRepository";
+import {Connection, createConnection, getConnectionOptions, getCustomRepository} from "typeorm";
+import {CollegeRepository} from "./repositories/CollegeRepository";
 import {Keyboard} from "vk-io";
+import {CityRepository} from "./repositories/CityRepository";
 
-class Database {
+export default class Storage {
 
     public connection: Connection;
 
+    /**
+     * @public
+     * Создание таблиц базы данных и первичных записей. Запуск самой базы данных.
+     **/
     public connect = async () => {
 
         try {
             this.connection = await createConnection()
 
             let {dropSchema, synchronize} = await getConnectionOptions()
-            if(dropSchema && synchronize){
+            if (dropSchema && synchronize) {
 
                 let cityRepository = await getCustomRepository(CityRepository)
-                let chelyabinsk = await cityRepository.createAndSave("Челябинск")
+                let chelyabinsk = await cityRepository.create({name: "Челябинск"})
 
                 let collegeRepository = await getCustomRepository(CollegeRepository)
                 await collegeRepository.createAndSave("ЧГПГТ им. А.В Яковлева", "chgpgt.ru", chelyabinsk, {
@@ -26,29 +30,29 @@ class Database {
                         [
                             Keyboard.textButton({
                                 label: 'Вчера',
-                                payload: { command: 'yesterday' },
+                                payload: {command: 'yesterday'},
                                 color: Keyboard.NEGATIVE_COLOR
                             }),
                             Keyboard.textButton({
                                 label: 'Сегодня',
-                                payload: { command: 'today' },
+                                payload: {command: 'today'},
                                 color: Keyboard.PRIMARY_COLOR
                             }),
                             Keyboard.textButton({
                                 label: 'Завтра',
-                                payload: { command: 'tomorrow' },
+                                payload: {command: 'tomorrow'},
                                 color: Keyboard.POSITIVE_COLOR
                             })
                         ],
                         [
                             Keyboard.textButton({
                                 label: 'Послезавтра',
-                                payload: { command: 'afterTomorrow' },
+                                payload: {command: 'afterTomorrow'},
                                 color: Keyboard.POSITIVE_COLOR
                             }),
                             Keyboard.textButton({
                                 label: 'Настройки',
-                                payload: { command: 'settings' },
+                                payload: {command: 'settings'},
                                 color: Keyboard.NEGATIVE_COLOR
                             })
                         ]
@@ -80,5 +84,3 @@ class Database {
         }
     }
 }
-
-export const database = new Database();

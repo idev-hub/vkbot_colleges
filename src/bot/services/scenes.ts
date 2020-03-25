@@ -5,9 +5,19 @@ import {getCity} from "./cities";
 import {getCollege} from "./colleges";
 import {addUser, isLogin} from "./users";
 
-// Register scene
+
+/**
+ * Сцена регистрации или обновления данных пользователя
+ **/
 bot.sceneManager.addScene(new StepScene('registerScene', [
-    async (ctx) => { // STEP 1
+    /**
+     * Шаг 1
+     * - Сбрасываем сущесвующую сессия
+     * - Запрашиваем все города и выводим их в виде клавиатуры
+     * - Ждём Когда пользователь напишет город или нажмёт на кнопку
+     * - Записываем результат в State сцены
+     **/
+    async (ctx) => {
 
         if (ctx.session.user) { // Сбрасываем активную сессию пользователя, если она существует
             ctx.session.user = undefined
@@ -38,7 +48,13 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
         ctx.scene.state.cityName = ctx.text.trim().toLowerCase();
         return ctx.scene.step.next()
     },
-    async (ctx) => { // STEP 2
+    /**
+     * Шаг 2
+     * - Проверяем существование города в базе данных
+     * - Если существует, даём пользователю право выбора - ответить "верно" или "не верно", если "не верно" - возвращяем на предыдущий шаг
+     * - Если не сущесвует выводим соответсвующее окно и выходим из сцены
+     **/
+    async (ctx) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
 
             // Проверяем этого город в базе данных
@@ -72,10 +88,10 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
 
                     let keyboard = []
                     const user = await isLogin(ctx)
-                    if(user) keyboard = user.college.params.keyboards
+                    if (user) keyboard = user.college.params.keyboards
 
                     await ctx.send({
-                        message: '&#129302; - Прости для города "'+ctx.scene.state.cityName+'" еще не реализованы мои возможности. \n\nНо ты можешь попросить разработчика рассмотреть реализацию возможностей для меня. Просто нажми кнопку "Связаться" и тебе вскоре напишут что бы узнать дополнительную информацию',
+                        message: '&#129302; - Прости для города "' + ctx.scene.state.cityName + '" еще не реализованы мои возможности. \n\nНо ты можешь попросить разработчика рассмотреть реализацию возможностей для меня. Просто нажми кнопку "Связаться" и тебе вскоре напишут что бы узнать дополнительную информацию',
                         keyboard: Keyboard.keyboard([
                             Keyboard.textButton({
                                 label: 'Связаться',
@@ -104,7 +120,13 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
             if (ctx.messagePayload.command === 'prev') return ctx.scene.step.previous()
         }
     },
-    async (ctx) => { // STEP 3
+    /**
+     * Шаг 3
+     * - Получаем учебные учреждения из города выбранного пользователем и выводим их в виде клавиатуры
+     * - Ждём Когда пользователь напишет город или нажмёт на кнопку
+     * - Записываем результат в State сцены
+     **/
+    async (ctx) => {
 
         if (ctx.scene.step.firstTime || !ctx.text) {
             const colleges = await getCollege({city: ctx.scene.state.city["id"]}) // Получаем колледжы выбранного пользователем города
@@ -134,7 +156,7 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
 
                     let keyboard = []
                     const user = await isLogin(ctx)
-                    if(user) keyboard = user.college.params.keyboards
+                    if (user) keyboard = user.college.params.keyboards
 
                     await ctx.send({
                         message: '&#129302; - Я пока что не умею работать с учебными учреждениями в этом городе. \n\nНо ты можешь попросить разработчика рассмотреть реализацию возможностей для меня. Просто нажми кнопку "Связаться" и тебе вскоре напишут что бы узнать дополнительную информацию',
@@ -165,7 +187,13 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
         ctx.scene.state.collegeName = ctx.text.trim()
         return ctx.scene.step.next()
     },
-    async (ctx) => { // STEP 4
+    /**
+     * Шаг 4
+     * - Проверяем существование колледжа в базе данных
+     * - Если существует, даём пользователю право выбора - ответить "верно" или "не верно", если "не верно" - возвращяем на предыдущий шаг
+     * - Если не сущесвует выводим соответсвующее окно и выходим из сцены
+     **/
+    async (ctx) => {
 
         if (ctx.scene.step.firstTime || !ctx.text) {
 
@@ -200,7 +228,7 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
 
                     let keyboard = []
                     const user = await isLogin(ctx)
-                    if(user) keyboard = user.college.params.keyboards
+                    if (user) keyboard = user.college.params.keyboards
 
                     await ctx.send({
                         message: '&#129302; - Прости для "' + ctx.scene.state.collegeName + '" еще не реализованы мои возможности. \n\nНо ты можешь попросить разработчика рассмотреть реализацию возможностей для меня. Просто нажми кнопку "Связаться" и тебе вскоре напишут что бы узнать дополнительную информацию',
@@ -231,6 +259,11 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
             if (ctx.messagePayload.command === 'prev') return ctx.scene.step.previous()
         }
     },
+    /**
+     * Шаг 5
+     * - Отправляем сообщение о том что нужно ввести свою группу
+     * - Ждём ввода пользователя
+     **/
     async (ctx) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
             return ctx.send({
@@ -259,10 +292,14 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
             return ctx.scene.step.next()
         }
     },
+    /**
+     * Шаг 6
+     * - Даём пользователю право выбора - ответить "верно" или "не верно", если "не верно" - возвращяем на предыдущий шаг
+     **/
     async (ctx) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
             return ctx.send({
-                message: '&#129302; - Ты уверен что ВЕРНО написал свою группу - "'+ctx.scene.state.group+'"? Если все верно, тогда поздравляю! Почти у цели',
+                message: '&#129302; - Ты уверен что ВЕРНО написал свою группу - "' + ctx.scene.state.group + '"? Если все верно, тогда поздравляю! Почти у цели',
                 keyboard: Keyboard.keyboard([
                     [
                         Keyboard.textButton({
@@ -284,13 +321,19 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
             if (ctx.messagePayload.command === 'prev') return ctx.scene.step.previous()
         }
     },
-    async (ctx) => { // STEP 5
+    /**
+     * Шаг 6
+     * - Создаем пользователя
+     * - Выдаем клавиатуру колледжа
+     * - Завершаем сцену
+     **/
+    async (ctx) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
 
             const {college, group} = ctx.scene.state
 
             try {
-                let user = await addUser({
+                await addUser({
                     peerId: ctx.senderId,
                     college: college,
                     group: group,
@@ -319,8 +362,16 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
     }
 ]))
 
-// Settings scene
+
+/**
+ * Сцена с настройками бота
+ **/
 bot.sceneManager.addScene(new StepScene('settingsScene', [
+    /**
+     * Шаг 1
+     * - Спрашиваем что хочет пользователь настройть
+     * - Ждём нажатия кнопки
+     **/
     async (ctx) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
             return ctx.send({
@@ -349,16 +400,17 @@ bot.sceneManager.addScene(new StepScene('settingsScene', [
             })
         }
 
+
         if (ctx.messagePayload) {
-            if (ctx.messagePayload.command === 'toMain') {
+            if (ctx.messagePayload.command === 'toMain') { // Еасли "Отмена"
                 await ctx.send({
                     message: 'Вы вернулись на главную страницу',
                     keyboard: Keyboard.keyboard(await ctx.session.user.college.params.keyboards)
                 })
                 return ctx.scene.leave()
             }
-            if (ctx.messagePayload.command === 'register') return ctx.scene.enter('registerScene')
-            if (ctx.messagePayload.command === 'autoLink') return ctx.scene.leave()
+            if (ctx.messagePayload.command === 'register') return ctx.scene.enter('registerScene') // Если "Обновить данные"
+            if (ctx.messagePayload.command === 'autoLink') return ctx.scene.leave() // Если "Рассылка расписания"
         }
     }
 ]))

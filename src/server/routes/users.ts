@@ -1,10 +1,14 @@
 import {server} from "../Server";
 import {getRepository} from "typeorm";
-import {User} from "../../database/entity/user"
+import {User} from "../../core/orm/models/User"
 
 
-
-// GET - By Name OR ID OR ALL Users
+/**
+ * GET запрос на получение пользователя
+ * @param req.query - который содержит в себе параметры для фильтрации выдаваемой информации
+ * @returns Возвращяет массив с пользователя
+ * @beta
+ **/
 server.restify.get('/api/user', async (req, res, next) => {
     let where = []
 
@@ -17,11 +21,15 @@ server.restify.get('/api/user', async (req, res, next) => {
         relations: ["college"]
     })
 
-    await res.json(json || [])
+    await res.json({json})
     return next()
 })
 
-// POST - Add user
+/**
+ * POST запрос на создание нового пользователя ( если пользователь уже существует, то обновляет )
+ * @param req.body - который содержит в себе данные для создания или обновления пользователя
+ * @returns В случае успеха, возвращяет созданного/обновленного пользователя
+ **/
 server.restify.post('/api/user', async (req, res, next) => {
 
     try {
@@ -48,10 +56,9 @@ server.restify.post('/api/user', async (req, res, next) => {
             res.json(await userRepository.save(newUser))
         }
 
-    } catch (err) {
+    } catch (error) {
 
-        console.error(err)
-        res.json(typeof err == "object" ? err : {error: err})
+        res.json({error})
 
     }
 
