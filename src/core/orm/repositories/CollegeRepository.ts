@@ -1,38 +1,68 @@
-import {College} from "../models/College"
-import {AbstractRepository, EntityRepository} from "typeorm"
+import {College} from "../models/College";
+import {AbstractRepository, EntityRepository, UpdateResult} from "typeorm";
 
 @EntityRepository(College)
 export class CollegeRepository extends AbstractRepository<College> {
 
     /**
-     * Выполняет поиск учебных учреждений по заданым опциям
-     * @param _options {object} Опции поиска
-     * @returns {Promise<Array<City>>} Возвращяет массив с учебными учреждениями
+     * Поиск существ
+     * @param _options {object} Опции
+     * @returns {Promise<Array<object>>} Наиденные существа
      **/
-    public search = (_options: object): Promise<Array<College>> => this.manager.find(College, _options)
+    public search = async (_options: object): Promise<Array<College>> => await this.manager.find(College, _options)
 
     /**
-     * Выполняет удаление учебного учреждения по заданым опциям
-     * @param _options {object} Опции условия
-     * @returns {Promise<object>} Удаленное учебное учреждение
+     * Поиск существа
+     * @param _options {object} Опции
+     * @returns {Promise<object>} Наиденное существо
+     **/
+    public find = async (_options: object): Promise<College> => await this.manager.findOne(College, _options)
+
+    /**
+     * Удаление существа
+     * @param _options {object} Опции
+     * @returns {Promise<object>} Удаленное существо
      **/
     public remove = async (_options: object): Promise<object> => {
+
         const college = await this.manager.findOne(College, _options)
         return await this.manager.remove(College, college)
+
     }
 
     /**
-     * Выполняет создание нового учебного учреждения по переданому телу
-     * @param _body {object} Тело, данные учебного учреждения
-     * @returns {Promise<City>} Созданное учебное учреждение
+     * Создание нового существа
+     * @param _body {object} Данные создаваемого существа
+     * @returns {Promise<object>} Созданное существо
      **/
-    public create = (_body: object): Promise<College> => {
+    public create = async (_body: object): Promise<College> => {
+
         const college = new College()
-        college.name = _body["name"]
-        college.city = _body["city"]
-        college.uri = _body["uri"]
-        college.params = _body["params"]
-        return this.manager.save(college)
+
+        Object.keys(_body).map((key) => {
+            college[key] = _body[key]
+        })
+
+        return await this.manager.save(college)
+
+    }
+
+    /**
+     * Обновление данных существа
+     * @param _object {object} Опции
+     * @param _body {object} Данные существа
+     * @returns {Promise<UpdateResult>} Обновленное существо
+     **/
+    public update = async (_object: College, _body: object): Promise<UpdateResult> => {
+
+        const updateCollege = new College()
+
+        Object.keys(_body).map((key) => {
+            updateCollege[key] = _body[key]
+        })
+
+        return await this.manager.update(College, _object.id, updateCollege)
+
     }
 
 }

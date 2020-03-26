@@ -10,10 +10,18 @@ export default class Luxon {
     /**
      * Расширение функционала времени
      * @param zone {string} - Строка со временой зоной
+     * @param date {DateTime} - Дата и время
      **/
-    constructor(zone:string = "Asia/Yekaterinburg") {
-        this.local = DateTime.local().setZone(zone)
+    constructor(zone:string = "Asia/Yekaterinburg", date: DateTime = DateTime.local()) {
+        this.local = date
+        if(zone) this.local.setZone(zone)
     }
+
+    /**
+     * Возвращяет преобразованное в ISO формат время
+     * @returns {string} Строка содержащяя время в ISO формате
+     **/
+    public getISO = (): string => this.local.toISO()
 
     /**
      * Добавляет указанное количество часов к текущему времени

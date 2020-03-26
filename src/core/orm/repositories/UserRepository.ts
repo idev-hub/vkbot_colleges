@@ -1,22 +1,22 @@
-import {City} from "../models/City";
 import {AbstractRepository, EntityRepository, UpdateResult} from "typeorm";
+import {User} from "../models/User";
 
-@EntityRepository(City)
-export class CityRepository extends AbstractRepository<City> {
+@EntityRepository(User)
+export class UserRepository extends AbstractRepository<User> {
 
     /**
      * Поиск существ
      * @param _options {object} Опции
      * @returns {Promise<Array<object>>} Наиденные существа
      **/
-    public search = async (_options: object): Promise<Array<City>> => await this.manager.find(City, _options)
+    public search = async (_options: object): Promise<Array<User>> => await this.manager.find(User, _options)
 
     /**
      * Поиск существа
      * @param _options {object} Опции
      * @returns {Promise<object>} Наиденное существо
      **/
-    public find = async (_options: object): Promise<City> => await this.manager.findOne(City, _options)
+    public find = async (_options: object): Promise<User> => await this.manager.findOne(User, _options)
 
     /**
      * Удаление существа
@@ -25,8 +25,8 @@ export class CityRepository extends AbstractRepository<City> {
      **/
     public remove = async (_options: object): Promise<object> => {
 
-        const city = await this.manager.findOne(City, _options)
-        return await this.manager.remove(City, city)
+        const user = await this.manager.findOne(User, _options)
+        return await this.manager.remove(User, user)
 
     }
 
@@ -35,17 +35,18 @@ export class CityRepository extends AbstractRepository<City> {
      * @param _body {object} Данные создаваемого существа
      * @returns {Promise<object>} Созданное существо
      **/
-    public create = async (_body: object): Promise<City> => {
+    public create = async (_body: object): Promise<User> => {
 
-        const city = new City()
+        const user = new User()
 
         Object.keys(_body).map((key) => {
-            city[key] = _body[key]
+            user[key] = _body[key]
         })
 
-        return await this.manager.save(city)
+        return await this.manager.save(user)
 
     }
+
 
     /**
      * Обновление данных существа
@@ -53,15 +54,15 @@ export class CityRepository extends AbstractRepository<City> {
      * @param _body {object} Данные существа
      * @returns {Promise<UpdateResult>} Обновленное существо
      **/
-    public update = async (_object: City, _body: object): Promise<UpdateResult> => {
+    public update = async (_object: User, _body: object): Promise<UpdateResult> => {
 
-        const updateCity = new City()
+        const updateUser = new User()
 
         Object.keys(_body).map((key) => {
-            updateCity[key] = _body[key]
+            updateUser[key] = _body[key]
         })
 
-        return await this.manager.update(City, _object.id, updateCity)
+        return await this.manager.update(User, _object.id, updateUser)
 
     }
 

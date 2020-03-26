@@ -4,8 +4,9 @@
 export default {
     bot: {
         connect: {
-            group_id: "122178863",
-            token: "654a7dc3f0c84315f249d56d1615cd9dd4660c0acd41bcfe4dfb4692f13e55e80583401bed1ef3f82bade"
+            group_id: -122178863,
+            token: "a1c827aa377b76d56763124ac72b4f056fb0139f9b1ccb41a63e6f3a97ac83dbf3de1596198103299c9e4",
+            service_token: "309a9769309a9769309a97693330f0cd653309a309a97696c568346656280d0b4bfdb8e"
         }
     },
     server: {

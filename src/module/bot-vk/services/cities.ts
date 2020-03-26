@@ -1,6 +1,6 @@
 import axios from "axios";
-import configs from "../../configs";
-import {City} from "../../core/orm/models/City";
+import configs from "../../../configs";
+import {City} from "../../../core/orm/models/City";
 
 /**
  * Отправляет запрос по внутренему серверу для получения списка городов

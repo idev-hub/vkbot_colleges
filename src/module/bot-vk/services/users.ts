@@ -1,6 +1,6 @@
 import axios from 'axios'
-import configs from "../../configs";
-import {User} from "../../core/orm/models/User";
+import configs from "../../../configs";
+import {User} from "../../../core/orm/models/User";
 import {Context} from "vk-io";
 
 /**

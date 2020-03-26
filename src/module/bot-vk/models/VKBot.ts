@@ -1,13 +1,11 @@
-import {VK} from "vk-io"
 import {SessionManager} from '@vk-io/session'
 import {SceneManager} from '@vk-io/scenes'
+import VK from 'vk-io'
+import {isLogin} from "../services/users";
 
-import configs from "../configs"
-import {isLogin} from "./services/users";
+export default class VKBot {
 
-export default class Bot {
-
-    public VK: VK
+    public instance: VK
     public sessionManager: SessionManager
     public sceneManager: SceneManager
 
@@ -15,20 +13,21 @@ export default class Bot {
      * Главный класс бота для Вконтакте. Инициализирует и подписываеться на прослушку всех middleware`s
      **/
     constructor(_options: object) {
-        this.VK = new VK(_options)
+
+        this.instance = new VK(_options)
         this.sessionManager = new SessionManager()
         this.sceneManager = new SceneManager()
 
 
         // Проверяем на ВХОДЯЩЕЕ сообщение, если всё хорошо переходим к следующему middleware
-        this.VK.updates.on('message', (ctx, next) => ctx.isOutbox ? undefined : next())
+        this.instance.updates.on('message', (ctx, next) => ctx.isOutbox ? undefined : next())
 
-        this.VK.updates.on('message', this.sessionManager.middleware)
-        this.VK.updates.on('message', this.sceneManager.middleware)
-        this.VK.updates.on('message', this.sceneManager.middlewareIntercept)
+        this.instance.updates.on('message', this.sessionManager.middleware)
+        this.instance.updates.on('message', this.sceneManager.middleware)
+        this.instance.updates.on('message', this.sceneManager.middlewareIntercept)
 
         // Добавляем в context сообщений новые данные о командах кнопок
-        this.VK.updates.on('message', (ctx, next) => {
+        this.instance.updates.on('message', (ctx, next) => {
 
             const {messagePayload} = ctx
             ctx.state.command = messagePayload && messagePayload.command
@@ -39,7 +38,7 @@ export default class Bot {
         })
 
         // Проверка авторизации пользователя
-        this.VK.updates.on('message', async (ctx, next) => {
+        this.instance.updates.on('message', async (ctx, next) => {
             try {
                 const user = await isLogin(ctx)
                 if (user != null) {
@@ -58,6 +57,7 @@ export default class Bot {
 
             }
         })
+
     }
 
     /**
@@ -65,11 +65,10 @@ export default class Bot {
      * Импортирует все необходимый файлы, после чего запускает LongPolling
      **/
     public run = async () => {
-        await import('./services/scenes')
-        await import('./services/commands')
+        await import('../scenes')
+        await import('../commands')
 
-        await this.VK.updates.startPolling()
+        await this.instance.updates.startPolling()
     }
-}
 
-export const bot = new Bot(configs.bot.connect)
+}

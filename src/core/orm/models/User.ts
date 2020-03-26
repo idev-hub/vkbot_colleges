@@ -17,13 +17,13 @@ export class User {
     @Column()
     group: string
 
-    @Column()
+    @Column({ default: 0 })
     gender: number
 
-    @Column()
+    @Column({ default: 0 })
     role: number
 
-    @Column()
+    @Column({ default: false })
     block: boolean
 
     @ManyToOne(type => College)

@@ -1,14 +1,15 @@
 import {server} from "../Server";
 import {getRepository, Like} from "typeorm";
-import {College} from "../../core/orm/models/College";
-import Typify from "../../utils/Typify";
+import {College} from "../../orm/models/College";
+import Typify from "../../../utils/Typify";
 import axios from "axios"
-import {User} from "../../core/orm/models/User";
+import {User} from "../../orm/models/User";
 
 /**
  * GET запрос на получение учебных учреждений
  **/
-server.restify.get('/api/college', async (req, res, next) => {
+server.restify.get('/api/college', async (req, res) => {
+
     let where = []
 
     if (req.query.name) where.push({name: Like(`%${req.query.name}%`)})
@@ -19,12 +20,14 @@ server.restify.get('/api/college', async (req, res, next) => {
     let json: any = await collegeRepository.find({ where: where })
 
     return res.json(json)
+
 })
 
 /**
  * GET запрос на получение расписания занятий
  **/
 server.restify.get('/api/timetable', async (req, res) => {
+
     if (!req.query.user) throw {name: "SyntaxError", message: "Не передана информация о пользователе"}
     if (!req.query.date) throw {name: "SyntaxError", message: "Не передана дата"}
 
@@ -32,6 +35,7 @@ server.restify.get('/api/timetable', async (req, res) => {
     const date = req.query.date
     const result = user.college.params.type === "jsonParse" ? await jsonParse(user, date) : await bodyParse(user, date)
     return res.json(result)
+
 })
 
 /**

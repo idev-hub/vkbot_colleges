@@ -1,6 +1,6 @@
 import Storage from "./core/orm/Storage"
-import {server} from "./server/Server";
-import {bot} from "./bot/Bot";
+import {server} from "./core/server/Server";
+import { bot } from "./module/bot-vk";
 
 /**
  * Функция по поочередному запуску проекта

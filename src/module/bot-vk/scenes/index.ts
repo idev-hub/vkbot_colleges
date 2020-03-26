@@ -1,10 +1,10 @@
-import {bot} from "../Bot"
-import {StepScene} from '@vk-io/scenes'
 import {Keyboard} from "vk-io";
-import {getCity} from "./cities";
-import {getCollege} from "./colleges";
-import {addUser, isLogin} from "./users";
+import {StepScene} from "@vk-io/scenes";
 
+import {getCity} from "../services/cities";
+import {addUser, isLogin} from "../services/users";
+import {getCollege} from "../services/colleges";
+import { bot } from "..";
 
 /**
  * Сцена регистрации или обновления данных пользователя
@@ -88,7 +88,7 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
 
                     let keyboard = []
                     const user = await isLogin(ctx)
-                    if (user) keyboard = user.college.params.keyboards
+                    if (user) keyboard = user.college["params"]["keyboards"]
 
                     await ctx.send({
                         message: '&#129302; - Прости для города "' + ctx.scene.state.cityName + '" еще не реализованы мои возможности. \n\nНо ты можешь попросить разработчика рассмотреть реализацию возможностей для меня. Просто нажми кнопку "Связаться" и тебе вскоре напишут что бы узнать дополнительную информацию',
@@ -156,7 +156,7 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
 
                     let keyboard = []
                     const user = await isLogin(ctx)
-                    if (user) keyboard = user.college.params.keyboards
+                    if (user) keyboard = user.college["params"]["keyboards"]
 
                     await ctx.send({
                         message: '&#129302; - Я пока что не умею работать с учебными учреждениями в этом городе. \n\nНо ты можешь попросить разработчика рассмотреть реализацию возможностей для меня. Просто нажми кнопку "Связаться" и тебе вскоре напишут что бы узнать дополнительную информацию',
@@ -228,7 +228,7 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
 
                     let keyboard = []
                     const user = await isLogin(ctx)
-                    if (user) keyboard = user.college.params.keyboards
+                    if (user) keyboard = user.college["params"]["keyboards"]
 
                     await ctx.send({
                         message: '&#129302; - Прости для "' + ctx.scene.state.collegeName + '" еще не реализованы мои возможности. \n\nНо ты можешь попросить разработчика рассмотреть реализацию возможностей для меня. Просто нажми кнопку "Связаться" и тебе вскоре напишут что бы узнать дополнительную информацию',
@@ -362,7 +362,6 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
     }
 ]))
 
-
 /**
  * Сцена с настройками бота
  **/
@@ -380,7 +379,7 @@ bot.sceneManager.addScene(new StepScene('settingsScene', [
                     [
                         Keyboard.textButton({
                             label: 'Отмена',
-                            payload: {command: 'toMain'},
+                            payload: {command: 'to-main'},
                             color: Keyboard.NEGATIVE_COLOR
                         }),
                         Keyboard.textButton({
@@ -402,7 +401,7 @@ bot.sceneManager.addScene(new StepScene('settingsScene', [
 
 
         if (ctx.messagePayload) {
-            if (ctx.messagePayload.command === 'toMain') { // Еасли "Отмена"
+            if (ctx.messagePayload.command === 'to-main') { // Еасли "Отмена"
                 await ctx.send({
                     message: 'Вы вернулись на главную страницу',
                     keyboard: Keyboard.keyboard(await ctx.session.user.college.params.keyboards)
@@ -414,3 +413,8 @@ bot.sceneManager.addScene(new StepScene('settingsScene', [
         }
     }
 ]))
+
+
+/**
+ * Сцена поиска собеседника
+ **/

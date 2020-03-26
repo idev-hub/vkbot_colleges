@@ -1,5 +1,5 @@
 import * as restify from 'restify'
-import configs from '../configs'
+import configs from '../../configs'
 
 export class Server {
     public restify: any

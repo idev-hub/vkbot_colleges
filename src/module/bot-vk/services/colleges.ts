@@ -1,6 +1,6 @@
 import axios from 'axios'
-import configs from "../../configs";
-import {College} from "../../core/orm/models/College";
+import configs from "../../../configs";
+import {College} from "../../../core/orm/models/College";
 
 /**
  * Отправляет запрос по внутренему серверу для получения списка учебных учреждений

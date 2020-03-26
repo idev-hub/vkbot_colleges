@@ -1,12 +1,12 @@
 import {server} from "../Server";
 import {getCustomRepository, getRepository, Like} from "typeorm";
-import {City} from "../../core/orm/models/City";
-import {CityRepository} from "../../core/orm/repositories/CityRepository";
+import {City} from "../../orm/models/City";
+import {CityRepository} from "../../orm/repositories/CityRepository";
 
 /**
  * GET обработчик на получение списка городов
  **/
-server.restify.get('/api/city', async (req, res, next) => {
+server.restify.get('/api/city', async (req, res) => {
     try {
 
         const where = []
@@ -28,7 +28,7 @@ server.restify.get('/api/city', async (req, res, next) => {
 /**
  * Создание нового города
  **/
-server.restify.post('/api/city', async (req, res, next) => {
+server.restify.post('/api/city', async (req, res) => {
     try {
 
         const cityRepository = await getCustomRepository(CityRepository)
@@ -48,7 +48,7 @@ server.restify.post('/api/city', async (req, res, next) => {
 /**
  * DELETE обработчик на удаление города
  **/
-server.restify.del('/api/city', async (req, res, next) => {
+server.restify.del('/api/city', async (req, res) => {
     try {
 
         const cityRepository = await getCustomRepository(CityRepository)
