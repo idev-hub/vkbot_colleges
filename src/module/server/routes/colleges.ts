@@ -1,27 +1,11 @@
-import {server} from "../Server";
-import {getRepository, Like} from "typeorm";
-import {College} from "../../orm/models/College";
+import {getCustomRepository, getRepository, Like} from "typeorm";
+import {College} from "../../database/entities/College";
 import Typify from "../../../utils/Typify";
 import axios from "axios"
-import {User} from "../../orm/models/User";
+import {User} from "../../database/entities/User";
+import {server} from "../index";
+import {CollegeRepository} from "../../database/repositories/CollegeRepository";
 
-/**
- * GET запрос на получение учебных учреждений
- **/
-server.restify.get('/api/college', async (req, res) => {
-
-    let where = []
-
-    if (req.query.name) where.push({name: Like(`%${req.query.name}%`)})
-    if (req.query) where.push(req.query)
-
-    let collegeRepository = await getRepository(College)
-
-    let json: any = await collegeRepository.find({ where: where })
-
-    return res.json(json)
-
-})
 
 /**
  * GET запрос на получение расписания занятий

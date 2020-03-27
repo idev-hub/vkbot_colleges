@@ -1,46 +1,40 @@
-import {Keyboard} from "vk-io";
+import {Context, Keyboard} from "vk-io";
 import {StepScene} from "@vk-io/scenes";
+import {isLogin} from "../services/users";
+import {bot} from "..";
+import {getFoundInterlocutor} from "../services/dialogs";
+import {getCustomRepository, Like} from "typeorm";
+import {CityRepository} from "../../database/repositories/CityRepository";
+import {GenerateKeyboards, IKeyboardItem} from "../../../utils/GenerateKeyboards";
+import {CollegeRepository} from "../../database/repositories/CollegeRepository";
+import {UserRepository} from "../../database/repositories/UserRepository";
+import {DialogRepository} from "../../database/repositories/DialogRepository";
 
-import {getCity} from "../services/cities";
-import {addUser, isLogin} from "../services/users";
-import {getCollege} from "../services/colleges";
-import { bot } from "..";
 
 /**
  * Сцена регистрации или обновления данных пользователя
  **/
-bot.sceneManager.addScene(new StepScene('registerScene', [
+bot.sceneManager.addScene(new StepScene('register-scene', [
     /**
      * Шаг 1
-     * - Сбрасываем сущесвующую сессия
-     * - Запрашиваем все города и выводим их в виде клавиатуры
-     * - Ждём Когда пользователь напишет город или нажмёт на кнопку
-     * - Записываем результат в State сцены
+     * - Узнаем город пользователя
      **/
-    async (ctx) => {
+    async (ctx: Context) => {
 
-        if (ctx.session.user) { // Сбрасываем активную сессию пользователя, если она существует
-            ctx.session.user = undefined
-        }
+        ctx.session.user = undefined // Сбрасываем активную сессию пользователя
 
         if (ctx.scene.step.firstTime || !ctx.text) {
-            const cities = await getCity() // Запрашиваем все города
-            let keyboards = [], index = 0;
 
-            for (const city of cities) {
-                if (index < 3) {
-                    keyboards.push(Keyboard.textButton({
-                        label: city['name'],
-                        color: Keyboard.PRIMARY_COLOR
-                    }))
-                    index++;
-                } else break;
-            }
-            return ctx.send({
-                message: '1&#8419; - В каком городе ты обучаешься?',
-                keyboard: Keyboard.keyboard([
-                    keyboards
-                ]).oneTime()
+            const cityRepository = await getCustomRepository(CityRepository)
+            const cities = await cityRepository.search() // Получаем доступные города
+
+            return ctx.send("1&#8419; - В каком городе ты обучаешся?", {
+                keyboard: Keyboard.keyboard(
+                    GenerateKeyboards(cities.map(city => ({
+                        text: `${city.name}`,
+                        command: `${city.id}`
+                    }) as IKeyboardItem), 4, 3, 3)
+                ).oneTime()
             });
         }
 
@@ -50,22 +44,20 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
     },
     /**
      * Шаг 2
-     * - Проверяем существование города в базе данных
-     * - Если существует, даём пользователю право выбора - ответить "верно" или "не верно", если "не верно" - возвращяем на предыдущий шаг
-     * - Если не сущесвует выводим соответсвующее окно и выходим из сцены
+     * - Проверяем выбранный город
      **/
-    async (ctx) => {
+    async (ctx: Context) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
 
-            // Проверяем этого город в базе данных
-            const city = await getCity({name: ctx.scene.state.cityName})
-            if (city.length > 0) {
-                let name = city[0]['name']
+            const cityRepository = await getCustomRepository(CityRepository)
+            const city = await cityRepository.find({name: Like(ctx.scene.state.cityName)}) // Проверяем выбранный город в базе данных
 
-                ctx.scene.state.city = city[0] // Перезаписываем данные города на полные - между сценами
+            if (city) {
+
+                ctx.scene.state.city = city
 
                 return ctx.send({
-                    message: '&#129302; - Твой город "' + name + '"? Если всё верно тогда продолжим',
+                    message: '&#129302; - Твой город "' + city.name + '"? Если всё верно тогда продолжим',
                     keyboard: Keyboard.keyboard([
                         [
                             Keyboard.textButton({
@@ -122,33 +114,23 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
     },
     /**
      * Шаг 3
-     * - Получаем учебные учреждения из города выбранного пользователем и выводим их в виде клавиатуры
-     * - Ждём Когда пользователь напишет город или нажмёт на кнопку
-     * - Записываем результат в State сцены
+     * - Узнаем учебное учреждение
      **/
-    async (ctx) => {
+    async (ctx: Context) => {
 
         if (ctx.scene.step.firstTime || !ctx.text) {
-            const colleges = await getCollege({city: ctx.scene.state.city["id"]}) // Получаем колледжы выбранного пользователем города
+            const collegeRepository = await getCustomRepository(CollegeRepository)
+            const colleges = await collegeRepository.search({city: ctx.scene.state.city}) // Получаем колледжы города
 
             if (colleges.length > 0) {
-                let keyboards = [], index = 0;
-
-                for (const college of colleges) {
-                    if (index < 3) {
-
-                        keyboards.push(Keyboard.textButton({
-                            label: college['name'],
-                            color: Keyboard.PRIMARY_COLOR
-                        }))
-                        index++;
-                    } else break;
-                }
                 return ctx.send({
                     message: '2&#8419; - В каком учебном учреждении ты учишься?',
-                    keyboard: Keyboard.keyboard([
-                        keyboards
-                    ]).oneTime()
+                    keyboard: Keyboard.keyboard(
+                        GenerateKeyboards(colleges.map(college => ({
+                            text: `${college.name}`,
+                            command: `${college.id}`
+                        }) as IKeyboardItem), 4, 3, 3)
+                    ).oneTime()
                 })
             } else {
 
@@ -189,24 +171,22 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
     },
     /**
      * Шаг 4
-     * - Проверяем существование колледжа в базе данных
-     * - Если существует, даём пользователю право выбора - ответить "верно" или "не верно", если "не верно" - возвращяем на предыдущий шаг
-     * - Если не сущесвует выводим соответсвующее окно и выходим из сцены
+     * - Проверяем выбранное учебное учреждение
      **/
-    async (ctx) => {
+    async (ctx: Context) => {
 
         if (ctx.scene.step.firstTime || !ctx.text) {
 
             // Получаем наиболее подходящий колледж по запросу юзера
-            const college = await getCollege({name: ctx.scene.state.collegeName})
+            const collegeRepository = await getCustomRepository(CollegeRepository)
+            const college = await collegeRepository.find({name: Like(ctx.scene.state.collegeName)})
 
-            if (college.length > 0) {
-                let name = college[0]['name'] // Получаем актуальное имя колледжа
+            if (college) {
 
-                ctx.scene.state.college = college[0] // Перезаписываем данные коледжа на полные - между сценами
+                ctx.scene.state.college = college
 
                 return ctx.send({
-                    message: '&#129302; - Твоё учебное учреждение называеться - "' + name + '"? Если всё верно тогда продолжим',
+                    message: '&#129302; - Твоё учебное учреждение называется - "' + college.name + '"? Если всё верно тогда продолжим',
                     keyboard: Keyboard.keyboard([
                         [
                             Keyboard.textButton({
@@ -261,10 +241,9 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
     },
     /**
      * Шаг 5
-     * - Отправляем сообщение о том что нужно ввести свою группу
-     * - Ждём ввода пользователя
+     * - Узнаем группу/класс пользователя в учебном учреждение
      **/
-    async (ctx) => {
+    async (ctx: Context) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
             return ctx.send({
                 message: '3&#8419; - Напиши название/номер своей группы/класса.',
@@ -272,7 +251,7 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
                     [
                         Keyboard.textButton({
                             label: 'Подробнее',
-                            payload: {command: 'helpGroup'},
+                            payload: {command: 'help-group'},
                             color: Keyboard.POSITIVE_COLOR
                         })
                     ]
@@ -281,7 +260,7 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
         }
 
         if (ctx.messagePayload) {
-            if (ctx.messagePayload.command === 'helpGroup') {
+            if (ctx.messagePayload.command === 'help-group') {
                 return ctx.send({
                     message: '&#129302; - Нужно написать свою группу/класс в вашем учебном учреждении. Писать нужно так же как указано в официальных источниках. Как правило узнать можно на сайте учебного учреждения.\nВо многих учебных учреждених ваша группа/класс меняются когда вы оканчиваете учебный год и переходите на следющий.\n\n К примеру в ЧГПГТ им. А.В. Яковлева, каждый год у группы меняется первая цифры.\n1 курс - 107\n2 курс - 207\n3 курс - 307\n\nЯ не умею сам менять эти значения, каждый год вам придёться обновлять свою группу, для этого нужно будет зайти в настройки\n\n\n3&#8419; - Напишите название/номер своей группы/класса.'
                 })
@@ -294,9 +273,9 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
     },
     /**
      * Шаг 6
-     * - Даём пользователю право выбора - ответить "верно" или "не верно", если "не верно" - возвращяем на предыдущий шаг
+     * - Проверяем группу/класс пользователя в учебном учреждение
      **/
-    async (ctx) => {
+    async (ctx: Context) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
             return ctx.send({
                 message: '&#129302; - Ты уверен что ВЕРНО написал свою группу - "' + ctx.scene.state.group + '"? Если все верно, тогда поздравляю! Почти у цели',
@@ -324,16 +303,16 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
     /**
      * Шаг 6
      * - Создаем пользователя
-     * - Выдаем клавиатуру колледжа
-     * - Завершаем сцену
      **/
-    async (ctx) => {
+    async (ctx: Context) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
 
             const {college, group} = ctx.scene.state
 
             try {
-                await addUser({
+
+                const userRepository = await getCustomRepository(UserRepository)
+                await userRepository.createOrUpdate({
                     peerId: ctx.senderId,
                     college: college,
                     group: group,
@@ -342,18 +321,13 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
                     block: false
                 })
 
-                await ctx.send({
-                    message: '&#129302; - Вот и всё.\n ' +
-                        'Теперь ты можешь пользоваться моими возможностями.',
-                    keyboard: Keyboard.keyboard(college.params.keyboards)
-                })
-
-                return ctx.scene.leave()
+                return ctx.scene.enter('timetable-scene')
 
             } catch (err) {
 
                 await ctx.send('Во время сохранения данных произошла ошибка.\n\n' + err)
-                return ctx.scene.leave()
+
+                return ctx.scene.step.next()
 
             }
         }
@@ -363,23 +337,458 @@ bot.sceneManager.addScene(new StepScene('registerScene', [
 ]))
 
 /**
+ * Сцена с расписанием
+ **/
+bot.sceneManager.addScene(new StepScene('timetable-scene', [
+    /**
+     * Шаг 1
+     * - Отправляем приветсвие с клавиатурой расписания
+     **/
+    async (ctx: Context) => {
+
+        if (ctx.scene.step.firstTime || !ctx.text) {
+            const user = await isLogin(ctx)
+            await ctx.send({
+                message: 'На какой день вы хотите получить расписание?',
+                keyboard: Keyboard.keyboard(user['college']['params']['keyboards'])
+            })
+        }
+
+        return ctx.scene.leave()
+    }
+]))
+
+
+
+
+
+/**
+ * Поиск комнаты для общения
+ **/
+bot.sceneManager.addScene(new StepScene('search-companion-scene', [
+    /**
+     * Шаг 1
+     * - Отправляем приветсвие с клавиатурой поиска
+     **/
+    async (ctx: Context) => {
+
+
+
+        if (ctx.scene.step.firstTime || !ctx.text) {
+
+            const dialogRepository = await getCustomRepository(DialogRepository)
+
+            await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: null})
+            const dialog = await dialogRepository.find({user: ctx.session.user})
+
+            if (dialog.smile === null) {
+
+                return ctx.send({
+                    message: 'Выберете свой смайлик. Он будет виден вашему собеседнику',
+                    keyboard:
+                        Keyboard.keyboard([
+                            [
+                                Keyboard.textButton({
+                                    label: '&#128516;',
+                                    payload: {command: '128516'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: '&#128519;',
+                                    payload: {command: '128519'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: '&#128523;',
+                                    payload: {command: '128523'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: '&#128525;',
+                                    payload: {command: '128525'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: '&#128563;',
+                                    payload: {command: '128563'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                            ],
+                            [
+                                Keyboard.textButton({
+                                    label: '&#128567;',
+                                    payload: {command: '128567'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: '&#128123;',
+                                    payload: {command: '128123'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: '&#128520;',
+                                    payload: {command: '128520'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: '&#128056;',
+                                    payload: {command: '128056'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: '&#128060;',
+                                    payload: {command: '128060'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                })
+                            ]
+                        ])
+                })
+
+            } else {
+                return ctx.send({
+                    message: 'Начать поиск собеседника?',
+                    keyboard:
+                        Keyboard.keyboard([
+                            [
+                                Keyboard.textButton({
+                                    label: 'К расписанию',
+                                    payload: {command: 'to-timetable'},
+                                    color: Keyboard.NEGATIVE_COLOR
+                                }),
+                                Keyboard.textButton({
+                                    label: 'Начать поиск',
+                                    payload: {command: 'start-search'},
+                                    color: Keyboard.POSITIVE_COLOR
+                                })
+                            ]
+                        ])
+                })
+            }
+        }
+
+        if (ctx.messagePayload) {
+            if (ctx.messagePayload.command === 'to-timetable') {
+
+                return ctx.scene.enter('timetable-scene')
+
+            } else if (ctx.messagePayload.command === 'start-search') {
+
+                return ctx.scene.step.next()
+
+            } else if (ctx.messagePayload.command) {
+
+                const dialogRepository = await getCustomRepository(DialogRepository)
+                await dialogRepository.createOrUpdate({user: ctx.session.user, smile: ctx.messagePayload.command})
+                return ctx.scene.step.next()
+
+            }
+        }
+    },
+    /**
+     * Шаг 2
+     * - Идёт поиск
+     **/
+    async (ctx: Context) => {
+
+        if (ctx.scene.step.firstTime || !ctx.text) {
+
+            const dialogRepository = await getCustomRepository(DialogRepository)
+
+            ctx.session.companion = undefined
+
+            await ctx.send({
+                message: '&#129302; - Идёт поиск',
+                keyboard:
+                    Keyboard.keyboard([
+                        [
+                            Keyboard.textButton({
+                                label: 'Отменить поиск',
+                                payload: {command: 'cancel'},
+                                color: Keyboard.NEGATIVE_COLOR
+                            })
+                        ]
+                    ])
+            })
+
+            await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: "search"})
+            const dialog = await getFoundInterlocutor(ctx.session.user)
+
+            if (dialog) {
+
+                ctx.scene.state.companion = dialog.user
+
+                await dialogRepository.createOrUpdate({user: ctx.session.user, companion: dialog.user, search: "communicate"})
+                await dialogRepository.createOrUpdate({user: dialog.user, companion: ctx.session.user, search: "communicate"})
+
+                return ctx.scene.step.next()
+            } else {
+                await ctx.send({
+                    message: '&#129302; - Сейчас собеседников нет. Я поставил тебя в очередь. Поиск собеседника будет выполнятся до тех пор, пока не нажмете "Отменить поиск"'
+                })
+                return ctx.scene.leave()
+            }
+        }
+    },
+    /**
+     * Шаг 3
+     * - Собеседник найден
+     **/
+    async (ctx: Context) => {
+
+        if (ctx.scene.step.firstTime || !ctx.text) {
+            await bot.instance.api.messages.send({
+                user_ids: [ctx.scene.state.companion.peerId, ctx.session.user.peerId],
+                message: '&#129302; - Собеседник найден.\nНажми кнопку "Начать общение"',
+                keyboard:
+                    Keyboard.keyboard([
+                        [
+                            Keyboard.textButton({
+                                label: 'Начать общение',
+                                payload: {command: 'chat-room'},
+                                color: Keyboard.POSITIVE_COLOR
+                            })
+                        ]
+                    ])
+            })
+        }
+
+        return ctx.scene.leave()
+    }
+]))
+
+/**
+ * Диалог с пользователем
+ **/
+bot.sceneManager.addScene(new StepScene('chat-room-scene', [
+    /**
+     * Шаг 1
+     * - Приветсвенный шаг
+     **/
+    async (ctx: Context) => {
+
+        if (ctx.scene.step.firstTime || !ctx.text) {
+
+            const dialogRepository = await getCustomRepository(DialogRepository)
+            await dialogRepository.createOrUpdate({user: ctx.session.user, search: "ready"})
+
+            ctx.scene.state.dialog = await dialogRepository.find({
+                user: ctx.session.user
+            })
+
+            await ctx.send({
+                message: '&#129302; - Приятного общения.\nЧто бы покинуть чат нажмите кнопку "Покинуть беседу".',
+                keyboard:
+                    Keyboard.keyboard([
+                        [
+                            Keyboard.textButton({
+                                label: 'Покинуть беседу',
+                                payload: {command: 'exit'},
+                                color: Keyboard.NEGATIVE_COLOR
+                            })
+                        ]
+                    ])
+            })
+        }
+
+        return await ctx.scene.step.next()
+
+    },
+    /**
+     * Шаг 2
+     * - Идёт общение
+     **/
+    async (ctx: Context) => {
+
+        const {dialog} = ctx.scene.state
+
+        if (!ctx.messagePayload && ctx.text) {
+
+            if (!ctx.scene.state.ready) {
+                const dialogRepository = await getCustomRepository(DialogRepository)
+                const dialogCompanion = await dialogRepository.find({
+                    companion: ctx.session.user
+                })
+
+                if (dialogCompanion && dialogCompanion.search === 'ready') {
+                    ctx.scene.state.ready = true
+                } else {
+                    await bot.instance.api.messages.send({
+                        peer_id: dialog.companion.peerId,
+                        message: `&#129302; - Ваш собеседник все еще ждёт пока вы нажмете кнопку "Начать общение", он написал вам:\n &#${dialog.smile}; - ${ctx.text}`
+                    })
+                    return ctx.send({
+                        message: '&#129302; - Собеседник еще не нажал кнопку "Начать общение". Но я ему напомнил об этом'
+                    })
+                }
+            }
+
+            if (ctx.scene.state.ready) {
+                return bot.instance.api.messages.send({
+                    peer_id: dialog.companion.peerId,
+                    message: `&#${dialog.smile}; - ${ctx.text}`
+                })
+            }
+        }
+
+        if (ctx.messagePayload) {
+            if (ctx.messagePayload.command === 'search-companion') return ctx.scene.enter('search-companion-scene')
+            if (ctx.messagePayload.command === 'exit') {
+
+                const dialogRepository = await getCustomRepository(DialogRepository)
+
+                await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: null})
+                await dialogRepository.createOrUpdate({user: dialog.companion, companion: null, search: null})
+
+                await bot.instance.api.messages.send({
+                    peer_id: dialog.companion.peerId,
+                    message: "&#129302; - Собеседник покинул чат.",
+                    keyboard:
+                        Keyboard.keyboard([
+                            [
+                                Keyboard.textButton({
+                                    label: 'Вернуться к поиску',
+                                    payload: {command: 'search-companion'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                })
+                            ]
+                        ])
+                })
+
+                return ctx.scene.enter('search-companion-scene')
+            }
+        }
+
+    }
+]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Сцена с доп. настройками
+ **/
+bot.sceneManager.addScene(new StepScene('more-scene', [
+    /**
+     * Шаг 1
+     * - Отправляем приветсвие с клавиатурой расписания
+     **/
+    async (ctx: Context) => {
+        if (ctx.scene.step.firstTime || !ctx.text) {
+            await ctx.send({
+                message: 'Что вы хотите сделать?',
+                keyboard: Keyboard.keyboard([
+                    [
+                        Keyboard.textButton({
+                            label: 'К расписанию',
+                            payload: {command: 'to-timetable'},
+                            color: Keyboard.NEGATIVE_COLOR
+                        }),
+                        Keyboard.textButton({
+                            label: 'Погода',
+                            payload: {command: 'to-weather'},
+                            color: Keyboard.POSITIVE_COLOR
+                        })
+                    ],
+                    [
+                        Keyboard.textButton({
+                            label: 'Анонимный чат (Beta)',
+                            payload: {command: 'search-companion'},
+                            color: Keyboard.PRIMARY_COLOR
+                        }),
+                        Keyboard.textButton({
+                            label: 'Настройки',
+                            payload: {command: 'to-settings'},
+                            color: Keyboard.NEGATIVE_COLOR
+                        })
+                    ]
+                ])
+            })
+        }
+
+        return ctx.scene.leave()
+    }
+]))
+
+
+/**
+ * Сцена с погодой
+ **/
+bot.sceneManager.addScene(new StepScene('weather-scene', [
+    /**
+     * Шаг 1
+     * - Отправляем приветсвие с клавиатурой расписания
+     **/
+    async (ctx: Context) => {
+        if (ctx.scene.step.firstTime || !ctx.text) {
+            await ctx.send({
+                message: 'На какой день прислать погоду?',
+                keyboard: Keyboard.keyboard([
+                    [
+                        Keyboard.textButton({
+                            label: 'К расписанию',
+                            payload: {command: 'to-timetable'},
+                            color: Keyboard.NEGATIVE_COLOR
+                        }),
+                        Keyboard.textButton({
+                            label: 'Сегодня',
+                            payload: {command: 'today-weather'},
+                            color: Keyboard.POSITIVE_COLOR
+                        }),
+                        Keyboard.textButton({
+                            label: 'Завтра',
+                            payload: {command: 'tomorrow-weather'},
+                            color: Keyboard.PRIMARY_COLOR
+                        }),
+                    ],
+                    [
+                        Keyboard.textButton({
+                            label: 'Послезавтра',
+                            payload: {command: 'after-tomorrow-weather'},
+                            color: Keyboard.NEGATIVE_COLOR
+                        }),
+                        Keyboard.textButton({
+                            label: 'На эту неделю',
+                            payload: {command: 'week-weather'},
+                            color: Keyboard.POSITIVE_COLOR
+                        })
+                    ]
+                ])
+            })
+        }
+
+        return ctx.scene.leave()
+    }
+]))
+
+
+/**
  * Сцена с настройками бота
  **/
-bot.sceneManager.addScene(new StepScene('settingsScene', [
+bot.sceneManager.addScene(new StepScene('settings-scene', [
     /**
      * Шаг 1
      * - Спрашиваем что хочет пользователь настройть
-     * - Ждём нажатия кнопки
      **/
-    async (ctx) => {
+    async (ctx: Context) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
-            return ctx.send({
+            await ctx.send({
                 message: 'Что вы хотите настройть?',
                 keyboard: Keyboard.keyboard([
                     [
                         Keyboard.textButton({
-                            label: 'Отмена',
-                            payload: {command: 'to-main'},
+                            label: 'К расписанию',
+                            payload: {command: 'to-timetable'},
                             color: Keyboard.NEGATIVE_COLOR
                         }),
                         Keyboard.textButton({
@@ -391,7 +800,7 @@ bot.sceneManager.addScene(new StepScene('settingsScene', [
                     [
                         Keyboard.textButton({
                             label: 'Рассылка расписания',
-                            payload: {command: 'autoLink'},
+                            payload: {command: 'auto-link'},
                             color: Keyboard.PRIMARY_COLOR
                         })
                     ]
@@ -399,22 +808,6 @@ bot.sceneManager.addScene(new StepScene('settingsScene', [
             })
         }
 
-
-        if (ctx.messagePayload) {
-            if (ctx.messagePayload.command === 'to-main') { // Еасли "Отмена"
-                await ctx.send({
-                    message: 'Вы вернулись на главную страницу',
-                    keyboard: Keyboard.keyboard(await ctx.session.user.college.params.keyboards)
-                })
-                return ctx.scene.leave()
-            }
-            if (ctx.messagePayload.command === 'register') return ctx.scene.enter('registerScene') // Если "Обновить данные"
-            if (ctx.messagePayload.command === 'autoLink') return ctx.scene.leave() // Если "Рассылка расписания"
-        }
+        return ctx.scene.leave()
     }
 ]))
-
-
-/**
- * Сцена поиска собеседника
- **/

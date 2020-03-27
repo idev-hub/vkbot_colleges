@@ -1,7 +1,7 @@
 import {Connection, createConnection, getConnectionOptions, getCustomRepository} from "typeorm";
-import {CollegeRepository} from "./repositories/CollegeRepository";
+import {CollegeRepository} from "../repositories/CollegeRepository";
 import {Keyboard} from "vk-io";
-import {CityRepository} from "./repositories/CityRepository";
+import {CityRepository} from "../repositories/CityRepository";
 
 export default class Storage {
 
@@ -51,12 +51,12 @@ export default class Storage {
                             [
                                 Keyboard.textButton({
                                     label: 'Послезавтра',
-                                    payload: {command: 'afterTomorrow'},
+                                    payload: {command: 'after-tomorrow'},
                                     color: Keyboard.POSITIVE_COLOR
                                 }),
                                 Keyboard.textButton({
-                                    label: 'Настройки',
-                                    payload: {command: 'settings'},
+                                    label: 'Еще',
+                                    payload: {command: 'to-more'},
                                     color: Keyboard.NEGATIVE_COLOR
                                 })
                             ]

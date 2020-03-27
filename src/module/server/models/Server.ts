@@ -1,7 +1,7 @@
 import * as restify from 'restify'
-import configs from '../../configs'
+import configs from '../../../configs'
 
-export class Server {
+export default class Server {
     public restify: any
 
     constructor() {
@@ -20,9 +20,7 @@ export class Server {
         this.restify.use(restify['plugins'].bodyParser());
 
         try {
-            import('./routes/cities')
-            import('./routes/colleges')
-            import('./routes/users')
+            import('../routes/colleges')
 
             await this.restify.listen(configs.server.port)
             configs.database.uri = this.restify.url
@@ -33,5 +31,3 @@ export class Server {
         }
     }
 }
-
-export const server = new Server()

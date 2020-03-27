@@ -1,12 +1,12 @@
 import {Context, Keyboard} from "vk-io";
 import {DateTime} from 'luxon';
-
 import Command from "../models/Command";
 import {bot} from "..";
 import Luxon from "../../../utils/Luxon";
 import {getTimetable} from "../services/colleges";
-import {isLogin} from "../services/users";
 import RSSParser from "../../../utils/RSSParser";
+import {getCustomRepository} from "typeorm";
+import {DialogRepository} from "../../database/repositories/DialogRepository";
 
 
 /**
@@ -21,7 +21,7 @@ const timetableTemplate = async (ctx: Context, date: Luxon = new Luxon()): Promi
     return (date.week() !== 7) ? await getTimetable({
         user: user,
         date: date.pin(),
-    }) : "- Сегодня выходной день, расписания нет."
+    }) : "- Этот день выходной, расписания нет."
 }
 
 
@@ -109,7 +109,7 @@ new Command(bot, 'tomorrow', ['завтра', 'Завтра', 'з'], async (ctx:
 /**
  * Команда получения расписания на ПОСЛЕЗАВТРА
  **/
-new Command(bot, 'afterTomorrow', ['послезавтра', 'Послезавтра', 'пз'], async (ctx: Context) => {
+new Command(bot, 'after-tomorrow', ['послезавтра', 'Послезавтра', 'пз'], async (ctx: Context) => {
     let date = new Luxon().add(48)
     const template = await timetableTemplate(ctx, date)
 
@@ -133,34 +133,53 @@ new Command(bot, 'afterTomorrow', ['послезавтра', 'Послезавт
 })
 
 
+
+
+/**
+ * Команда перехода на сцену с расписанием занятий
+ **/
+new Command(bot, 'to-timetable', ['/main'], async (ctx: Context) => ctx.scene.enter('timetable-scene'))
+
+
 /**
  * Команда перехода на сцену с регистрацией ( работает как функция обновления и создания данных о пользователе )
  **/
-new Command(bot, 'register', ['/update'], (ctx: Context) => ctx.scene.enter('registerScene'))
+new Command(bot, 'register', ['/update'], (ctx: Context) => ctx.scene.enter('register-scene'))
 
 
 /**
  * Команда перехода на сцену с настройками пользователя
  **/
-new Command(bot, 'settings', ['/settings'], (ctx: Context) => ctx.scene.enter('settingsScene'))
+new Command(bot, 'to-settings', ['/settings'], (ctx: Context) => ctx.scene.enter('settings-scene'))
+
+
+
 
 
 /**
- * Команда выхода из всех сцен
+ * Команда перехода на сцену с доп. функционалом
  **/
-new Command(bot, 'to-main', ['/main'], async (ctx: Context) => {
-    await ctx.scene.leave()
+new Command(bot, 'to-more', ['/more'], (ctx: Context) => ctx.scene.enter('more-scene'))
 
-    let user = await isLogin(ctx)
-    let keyboard = []
-    if (user) keyboard = await user.college["params"]["keyboards"]
 
-    return ctx.send({
-        message: 'Вы вернулись на главную страницу',
-        keyboard: Keyboard.keyboard(keyboard)
-    })
+/**
+ * Команда перехода на сцену с погодой
+ **/
+new Command(bot, 'to-weather', ['/weather'], (ctx: Context) => ctx.scene.enter('weather-scene'))
+
+
+/**
+ * Команды чата
+ * @beta
+ **/
+new Command(bot, 'search-companion', ['/search'], (ctx: Context) => ctx.scene.enter('search-companion-scene'))
+new Command(bot, 'chat-room', ['/room'], (ctx: Context) => ctx.scene.enter('chat-room-scene'))
+new Command(bot, 'cancel-search-companion', ['/cancel-search-companion'], async (ctx: Context) => {
+    const dialogRepository = await getCustomRepository(DialogRepository)
+
+    await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: null})
+    return ctx.scene.enter('search-companion-scene')
 })
-
 
 /**
  * Команда тестирования парсинга новостей
@@ -179,18 +198,6 @@ new Command(bot, 'parse', ['/parse'], async (ctx: Context) => {
             ctx.send({message: item.title + "\n\n" + item.content + "\n\n" + item.link})
 
         }
-    })
-
-})
-
-
-/**
- * Команда тестирования
- **/
-new Command(bot, 'search-companion', ['/search'], (ctx: Context) => {
-
-    return ctx.send({
-        message: "Идёт поиск себеседника..."
     })
 
 })

@@ -41,6 +41,7 @@ export default class VKBot {
         this.instance.updates.on('message', async (ctx, next) => {
             try {
                 const user = await isLogin(ctx)
+
                 if (user != null) {
                     ctx.session.user = user
                     return next()
@@ -50,7 +51,7 @@ export default class VKBot {
                 await ctx.send("&#129302; - Привет!\n" +
                     "Меня создали для упрощения твоего бытия в учебном учреждении. Моя основная задача - это присылать тебе расписание занятий на выбраный тобою день. \n\n" +
                     "Тут всё просто, сперва нужно ответить на несколько вопросов, не бойся. Это быстро!")
-                return ctx.scene.enter('registerScene')
+                return ctx.scene.enter('register-scene')
             } catch (error) {
 
                 return ctx.reply('Во время получения данных вашей авторизации произошла ошибка. \n\n' + error)

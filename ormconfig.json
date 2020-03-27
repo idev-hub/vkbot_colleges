@@ -6,10 +6,10 @@
     "password": "7vg7tek7sG",
     "database": "z92271qa_tablevk",
     "entities": [
-        "dist/core/orm/models/**/*.js"
+        "dist/module/database/entities/**/*.js"
     ],
     "cli": {
-        "entitiesDir": "src/core/orm/models"
+        "entitiesDir": "src/module/database/entities"
     },
     "synchronize": false,
     "dropSchema": false,
