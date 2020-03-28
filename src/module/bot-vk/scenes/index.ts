@@ -1,7 +1,6 @@
-import {Context, Keyboard} from "vk-io";
-import {StepScene} from "@vk-io/scenes";
+import {Context, Keyboard, MessagesSendParams, StickerAttachment, PhotoAttachment, VideoAttachment} from "vk-io";
 import {isLogin} from "../services/users";
-import {bot} from "..";
+import {studyBot} from "..";
 import {getFoundInterlocutor} from "../services/dialogs";
 import {getCustomRepository, Like} from "typeorm";
 import {CityRepository} from "../../database/repositories/CityRepository";
@@ -14,7 +13,7 @@ import {DialogRepository} from "../../database/repositories/DialogRepository";
 /**
  * Сцена регистрации или обновления данных пользователя
  **/
-bot.sceneManager.addScene(new StepScene('register-scene', [
+studyBot.scene('register-scene', [
     /**
      * Шаг 1
      * - Узнаем город пользователя
@@ -334,12 +333,12 @@ bot.sceneManager.addScene(new StepScene('register-scene', [
 
         return ctx.scene.step.next()
     }
-]))
+])
 
 /**
  * Сцена с расписанием
  **/
-bot.sceneManager.addScene(new StepScene('timetable-scene', [
+studyBot.scene('timetable-scene', [
     /**
      * Шаг 1
      * - Отправляем приветсвие с клавиатурой расписания
@@ -356,7 +355,7 @@ bot.sceneManager.addScene(new StepScene('timetable-scene', [
 
         return ctx.scene.leave()
     }
-]))
+])
 
 
 
@@ -365,7 +364,7 @@ bot.sceneManager.addScene(new StepScene('timetable-scene', [
 /**
  * Поиск комнаты для общения
  **/
-bot.sceneManager.addScene(new StepScene('search-companion-scene', [
+studyBot.scene('search-companion-scene', [
     /**
      * Шаг 1
      * - Отправляем приветсвие с клавиатурой поиска
@@ -536,7 +535,7 @@ bot.sceneManager.addScene(new StepScene('search-companion-scene', [
     async (ctx: Context) => {
 
         if (ctx.scene.step.firstTime || !ctx.text) {
-            await bot.instance.api.messages.send({
+            await studyBot.api.messages.send({
                 user_ids: [ctx.scene.state.companion.peerId, ctx.session.user.peerId],
                 message: '&#129302; - Собеседник найден.\nНажми кнопку "Начать общение"',
                 keyboard:
@@ -554,12 +553,12 @@ bot.sceneManager.addScene(new StepScene('search-companion-scene', [
 
         return ctx.scene.leave()
     }
-]))
+])
 
 /**
  * Диалог с пользователем
  **/
-bot.sceneManager.addScene(new StepScene('chat-room-scene', [
+studyBot.scene('chat-room-scene', [
     /**
      * Шаг 1
      * - Приветсвенный шаг
@@ -600,8 +599,7 @@ bot.sceneManager.addScene(new StepScene('chat-room-scene', [
     async (ctx: Context) => {
 
         const {dialog} = ctx.scene.state
-
-        if (!ctx.messagePayload && ctx.text) {
+        if (!ctx.messagePayload && (ctx.text || ctx.attachments)) {
 
             if (!ctx.scene.state.ready) {
                 const dialogRepository = await getCustomRepository(DialogRepository)
@@ -612,7 +610,7 @@ bot.sceneManager.addScene(new StepScene('chat-room-scene', [
                 if (dialogCompanion && dialogCompanion.search === 'ready') {
                     ctx.scene.state.ready = true
                 } else {
-                    await bot.instance.api.messages.send({
+                    await studyBot.api.messages.send({
                         peer_id: dialog.companion.peerId,
                         message: `&#129302; - Ваш собеседник все еще ждёт пока вы нажмете кнопку "Начать общение", он написал вам:\n &#${dialog.smile}; - ${ctx.text}`
                     })
@@ -623,10 +621,36 @@ bot.sceneManager.addScene(new StepScene('chat-room-scene', [
             }
 
             if (ctx.scene.state.ready) {
-                return bot.instance.api.messages.send({
+                const {attachments, text} = ctx
+
+                const message: MessagesSendParams = {
+                    dont_parse_links: true,
                     peer_id: dialog.companion.peerId,
-                    message: `&#${dialog.smile}; - ${ctx.text}`
-                })
+                }
+
+                message['message'] = text?`&#${dialog.smile}; - ${text}`:`&#${dialog.smile};`
+
+                if(attachments.length > 0){
+
+                    const attach = []
+
+                    await attachments.forEach(attachment => {
+
+                        if(attachment instanceof StickerAttachment){
+                            return message['sticker_id'] = attachment.id
+                        }
+
+                        if(attachment instanceof PhotoAttachment || attachment instanceof VideoAttachment){
+                            attach.push(attachment.toString())
+                        }
+
+                    })
+
+                    message['attachment'] = attach.toString()
+                    console.log(message['attachment'])
+                }
+
+                return studyBot.api.messages.send(message)
             }
         }
 
@@ -639,7 +663,7 @@ bot.sceneManager.addScene(new StepScene('chat-room-scene', [
                 await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: null})
                 await dialogRepository.createOrUpdate({user: dialog.companion, companion: null, search: null})
 
-                await bot.instance.api.messages.send({
+                await studyBot.api.messages.send({
                     peer_id: dialog.companion.peerId,
                     message: "&#129302; - Собеседник покинул чат.",
                     keyboard:
@@ -659,7 +683,7 @@ bot.sceneManager.addScene(new StepScene('chat-room-scene', [
         }
 
     }
-]))
+])
 
 
 
@@ -678,7 +702,7 @@ bot.sceneManager.addScene(new StepScene('chat-room-scene', [
 /**
  * Сцена с доп. настройками
  **/
-bot.sceneManager.addScene(new StepScene('more-scene', [
+studyBot.scene('more-scene', [
     /**
      * Шаг 1
      * - Отправляем приветсвие с клавиатурой расписания
@@ -718,18 +742,18 @@ bot.sceneManager.addScene(new StepScene('more-scene', [
 
         return ctx.scene.leave()
     }
-]))
+])
 
 
 /**
  * Сцена с погодой
  **/
-bot.sceneManager.addScene(new StepScene('weather-scene', [
+studyBot.scene('weather-scene', [
     /**
      * Шаг 1
      * - Отправляем приветсвие с клавиатурой расписания
      **/
-    async (ctx: Context) => {
+    async (ctx) => {
         if (ctx.scene.step.firstTime || !ctx.text) {
             await ctx.send({
                 message: 'На какой день прислать погоду?',
@@ -769,13 +793,12 @@ bot.sceneManager.addScene(new StepScene('weather-scene', [
 
         return ctx.scene.leave()
     }
-]))
-
+])
 
 /**
  * Сцена с настройками бота
  **/
-bot.sceneManager.addScene(new StepScene('settings-scene', [
+studyBot.scene('settings-scene', [
     /**
      * Шаг 1
      * - Спрашиваем что хочет пользователь настройть
@@ -810,4 +833,4 @@ bot.sceneManager.addScene(new StepScene('settings-scene', [
 
         return ctx.scene.leave()
     }
-]))
+])

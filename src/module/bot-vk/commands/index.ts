@@ -1,7 +1,6 @@
 import {Context, Keyboard} from "vk-io";
 import {DateTime} from 'luxon';
-import Command from "../models/Command";
-import {bot} from "..";
+import {studyBot} from "..";
 import Luxon from "../../../utils/Luxon";
 import {getTimetable} from "../services/colleges";
 import RSSParser from "../../../utils/RSSParser";
@@ -28,7 +27,7 @@ const timetableTemplate = async (ctx: Context, date: Luxon = new Luxon()): Promi
 /**
  * Команда получения расписания за ВЧЕРА
  **/
-new Command(bot, 'yesterday', ['вчера', 'Вчера', 'в'], async (ctx: Context) => {
+studyBot.command('yesterday', ['вчера', 'Вчера', 'в'], async (ctx: Context) => {
     let date = new Luxon().subtract(24)
     const template = await timetableTemplate(ctx, date)
 
@@ -55,7 +54,7 @@ new Command(bot, 'yesterday', ['вчера', 'Вчера', 'в'], async (ctx: Co
 /**
  * Команда получения расписания за СЕГОДНЯ
  **/
-new Command(bot, 'today', ['сегодня', 'Сегодня', 'с'], async (ctx: Context) => {
+studyBot.command( 'today', ['сегодня', 'Сегодня', 'с'], async (ctx: Context) => {
     let date = new Luxon()
     const template = await timetableTemplate(ctx, date)
 
@@ -82,7 +81,7 @@ new Command(bot, 'today', ['сегодня', 'Сегодня', 'с'], async (ctx
 /**
  * Команда получения расписания на ЗАВТРА
  **/
-new Command(bot, 'tomorrow', ['завтра', 'Завтра', 'з'], async (ctx: Context) => {
+studyBot.command( 'tomorrow', ['завтра', 'Завтра', 'з'], async (ctx: Context) => {
     let date = new Luxon().add(24)
     const template = await timetableTemplate(ctx, date)
 
@@ -109,7 +108,7 @@ new Command(bot, 'tomorrow', ['завтра', 'Завтра', 'з'], async (ctx:
 /**
  * Команда получения расписания на ПОСЛЕЗАВТРА
  **/
-new Command(bot, 'after-tomorrow', ['послезавтра', 'Послезавтра', 'пз'], async (ctx: Context) => {
+studyBot.command( 'after-tomorrow', ['послезавтра', 'Послезавтра', 'пз'], async (ctx: Context) => {
     let date = new Luxon().add(48)
     const template = await timetableTemplate(ctx, date)
 
@@ -133,48 +132,43 @@ new Command(bot, 'after-tomorrow', ['послезавтра', 'Послезав�
 })
 
 
-
-
 /**
  * Команда перехода на сцену с расписанием занятий
  **/
-new Command(bot, 'to-timetable', ['/main'], async (ctx: Context) => ctx.scene.enter('timetable-scene'))
+studyBot.command( 'to-timetable', ['/main'], async (ctx: Context) => ctx.scene.enter('timetable-scene'))
 
 
 /**
  * Команда перехода на сцену с регистрацией ( работает как функция обновления и создания данных о пользователе )
  **/
-new Command(bot, 'register', ['/update'], (ctx: Context) => ctx.scene.enter('register-scene'))
+studyBot.command( 'register', ['/update'], (ctx: Context) => ctx.scene.enter('register-scene'))
 
 
 /**
  * Команда перехода на сцену с настройками пользователя
  **/
-new Command(bot, 'to-settings', ['/settings'], (ctx: Context) => ctx.scene.enter('settings-scene'))
-
-
-
+studyBot.command( 'to-settings', ['/settings'], (ctx: Context) => ctx.scene.enter('settings-scene'))
 
 
 /**
  * Команда перехода на сцену с доп. функционалом
  **/
-new Command(bot, 'to-more', ['/more'], (ctx: Context) => ctx.scene.enter('more-scene'))
+studyBot.command( 'to-more', ['/more'], (ctx: Context) => ctx.scene.enter('more-scene'))
 
 
 /**
  * Команда перехода на сцену с погодой
  **/
-new Command(bot, 'to-weather', ['/weather'], (ctx: Context) => ctx.scene.enter('weather-scene'))
+studyBot.command( 'to-weather', ['/weather'], (ctx: Context) => ctx.scene.enter('weather-scene'))
 
 
 /**
  * Команды чата
  * @beta
  **/
-new Command(bot, 'search-companion', ['/search'], (ctx: Context) => ctx.scene.enter('search-companion-scene'))
-new Command(bot, 'chat-room', ['/room'], (ctx: Context) => ctx.scene.enter('chat-room-scene'))
-new Command(bot, 'cancel-search-companion', ['/cancel-search-companion'], async (ctx: Context) => {
+studyBot.command( 'search-companion', ['/search'], (ctx: Context) => ctx.scene.enter('search-companion-scene'))
+studyBot.command( 'chat-room', ['/room'], (ctx: Context) => ctx.scene.enter('chat-room-scene'))
+studyBot.command( 'cancel-search-companion', ['/cancel-search-companion'], async (ctx: Context) => {
     const dialogRepository = await getCustomRepository(DialogRepository)
 
     await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: null})
@@ -184,7 +178,7 @@ new Command(bot, 'cancel-search-companion', ['/cancel-search-companion'], async 
 /**
  * Команда тестирования парсинга новостей
  **/
-new Command(bot, 'parse', ['/parse'], async (ctx: Context) => {
+studyBot.command( 'parse', ['/parse'], async (ctx: Context) => {
 
     const parser = new RSSParser('http://www.edu.ru/news/glavnye-novosti/feed.rss')
     const result = await parser.getData()

@@ -1,4 +1,7 @@
 import VKBot from "./models/VKBot";
-import configs from "../../configs";
+import {studyBotConfigs} from "../../configs/VKConfigs";
 
-export const bot = new VKBot(configs.bot.connect)
+export const studyBot = new VKBot(studyBotConfigs)
+
+import ('./scenes')
+import ('./commands')
