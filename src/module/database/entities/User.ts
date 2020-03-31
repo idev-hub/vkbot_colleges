@@ -17,14 +17,17 @@ export class User {
     @Column()
     group: string
 
-    @Column({ default: 0 })
+    @Column({default: 0})
     gender: number
 
-    @Column({ default: 0 })
+    @Column({default: 0})
     role: number
 
-    @Column({ default: false })
+    @Column({default: false})
     block: boolean
+
+    @Column({default: false})
+    autoLink: boolean
 
     @ManyToOne(type => College)
     @JoinColumn()

@@ -8,7 +8,10 @@ export class UserRepository extends AbstractRepository<User> {
      * Поиск существ
      **/
     public search = async function (conditions: FindConditions<User> = {}): Promise<Array<User>> {
-        return this.manager.find(User, conditions);
+        return this.manager.find(User, {
+            where: conditions,
+            relations: ['college']
+        });
     }
 
     /**

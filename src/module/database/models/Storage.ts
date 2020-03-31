@@ -76,17 +76,6 @@ export default class Storage {
                         }
                     }
                 })
-                await collegeRepository.create({
-                    name: "Южно-Уральский государственный колледж",
-                    uri: "ecol.edu.ru",
-                    city: chelyabinsk,
-                    params: {
-                        type: "bodyParse",
-                        api: '',
-                        keyboards: [],
-                        scheme: {}
-                    }
-                })
 
             }
 

@@ -1,4 +1,12 @@
-import {Context, Keyboard, MessagesSendParams, StickerAttachment, PhotoAttachment, VideoAttachment} from "vk-io";
+import {
+    Context,
+    Keyboard,
+    MessageContext,
+    MessagesSendParams,
+    PhotoAttachment,
+    StickerAttachment,
+    VideoAttachment
+} from "vk-io";
 import {isLogin} from "../services/users";
 import {studyBot} from "..";
 import {getFoundInterlocutor} from "../services/dialogs";
@@ -8,6 +16,88 @@ import {GenerateKeyboards, IKeyboardItem} from "../../../utils/GenerateKeyboards
 import {CollegeRepository} from "../../database/repositories/CollegeRepository";
 import {UserRepository} from "../../database/repositories/UserRepository";
 import {DialogRepository} from "../../database/repositories/DialogRepository";
+
+
+studyBot.updates.on('message', async (ctx: MessageContext, next) => {
+
+    const toMessage = async () => {
+
+        const {dialog} = ctx.session
+
+        if (!ctx.messagePayload && (ctx.text || ctx.attachments)) {
+
+            const {attachments, text} = ctx
+
+            const message: MessagesSendParams = {
+                dont_parse_links: true,
+                peer_id: dialog.companion.peerId,
+            }
+
+            message['message'] = text ? `&#${dialog.smile}; - ${text}` : `&#${dialog.smile};`
+
+            if (attachments.length > 0) {
+
+                const attach = []
+
+                await attachments.forEach(attachment => {
+
+                    if (attachment instanceof StickerAttachment) {
+                        return message['sticker_id'] = attachment.id
+                    }
+
+                    if (attachment instanceof PhotoAttachment || attachment instanceof VideoAttachment) {
+                        attach.push(attachment.toString())
+                    }
+
+                })
+
+                message['attachment'] = attach.toString()
+            }
+
+            return await studyBot.api.messages.send(message)
+        }
+        if (ctx.messagePayload) {
+            if (ctx.messagePayload.command === 'search-companion') return ctx.scene.enter('search-companion-scene')
+            if (ctx.messagePayload.command === 'leave-chat-room') {
+
+                const dialogRepository = await getCustomRepository(DialogRepository)
+
+                await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: null})
+                await dialogRepository.createOrUpdate({user: dialog.companion, companion: null, search: null})
+
+                await studyBot.api.messages.send({
+                    peer_id: dialog.companion.peerId,
+                    message: "&#129302; - Собеседник покинул чат.",
+                    keyboard:
+                        Keyboard.keyboard([
+                            [
+                                Keyboard.textButton({
+                                    label: 'Вернуться к поиску',
+                                    payload: {command: 'search-companion'},
+                                    color: Keyboard.PRIMARY_COLOR
+                                })
+                            ]
+                        ])
+                })
+
+                return ctx.scene.enter('search-companion-scene')
+            }
+        }
+    }
+
+    if (ctx.session.dialog) {
+        await toMessage()
+    } else {
+        const dialogRepository = await getCustomRepository(DialogRepository)
+        const local = await dialogRepository.find({user: ctx.session.user, search: 'communicate'})
+        if (local) {
+            ctx.session.dialog = local
+            await toMessage()
+        } else {
+            return next()
+        }
+    }
+})
 
 
 /**
@@ -358,9 +448,6 @@ studyBot.scene('timetable-scene', [
 ])
 
 
-
-
-
 /**
  * Поиск комнаты для общения
  **/
@@ -372,8 +459,9 @@ studyBot.scene('search-companion-scene', [
     async (ctx: Context) => {
 
 
-
         if (ctx.scene.step.firstTime || !ctx.text) {
+
+            ctx.session.dialog = undefined
 
             const dialogRepository = await getCustomRepository(DialogRepository)
 
@@ -381,7 +469,6 @@ studyBot.scene('search-companion-scene', [
             const dialog = await dialogRepository.find({user: ctx.session.user})
 
             if (dialog.smile === null) {
-
                 return ctx.send({
                     message: 'Выберете свой смайлик. Он будет виден вашему собеседнику',
                     keyboard:
@@ -450,12 +537,12 @@ studyBot.scene('search-companion-scene', [
                         Keyboard.keyboard([
                             [
                                 Keyboard.textButton({
-                                    label: 'К расписанию',
+                                    label: '&#128218; Вернутся к расписанию',
                                     payload: {command: 'to-timetable'},
                                     color: Keyboard.NEGATIVE_COLOR
                                 }),
                                 Keyboard.textButton({
-                                    label: 'Начать поиск',
+                                    label: '&#128270; Начать поиск',
                                     payload: {command: 'start-search'},
                                     color: Keyboard.POSITIVE_COLOR
                                 })
@@ -487,7 +574,7 @@ studyBot.scene('search-companion-scene', [
      * Шаг 2
      * - Идёт поиск
      **/
-    async (ctx: Context) => {
+    async (ctx: MessageContext) => {
 
         if (ctx.scene.step.firstTime || !ctx.text) {
 
@@ -501,8 +588,8 @@ studyBot.scene('search-companion-scene', [
                     Keyboard.keyboard([
                         [
                             Keyboard.textButton({
-                                label: 'Отменить поиск',
-                                payload: {command: 'cancel'},
+                                label: '&#9940; Отменить поиск',
+                                payload: {command: 'cancel-search-companion'},
                                 color: Keyboard.NEGATIVE_COLOR
                             })
                         ]
@@ -516,14 +603,25 @@ studyBot.scene('search-companion-scene', [
 
                 ctx.scene.state.companion = dialog.user
 
-                await dialogRepository.createOrUpdate({user: ctx.session.user, companion: dialog.user, search: "communicate"})
-                await dialogRepository.createOrUpdate({user: dialog.user, companion: ctx.session.user, search: "communicate"})
+                await dialogRepository.createOrUpdate({
+                    user: ctx.session.user,
+                    companion: dialog.user,
+                    search: "communicate"
+                })
+
+                await dialogRepository.createOrUpdate({
+                    user: dialog.user,
+                    companion: ctx.session.user,
+                    search: "communicate"
+                })
 
                 return ctx.scene.step.next()
             } else {
+
                 await ctx.send({
                     message: '&#129302; - Сейчас собеседников нет. Я поставил тебя в очередь. Поиск собеседника будет выполнятся до тех пор, пока не нажмете "Отменить поиск"'
                 })
+
                 return ctx.scene.leave()
             }
         }
@@ -534,169 +632,24 @@ studyBot.scene('search-companion-scene', [
      **/
     async (ctx: Context) => {
 
-        if (ctx.scene.step.firstTime || !ctx.text) {
-            await studyBot.api.messages.send({
-                user_ids: [ctx.scene.state.companion.peerId, ctx.session.user.peerId],
-                message: '&#129302; - Собеседник найден.\nНажми кнопку "Начать общение"',
-                keyboard:
-                    Keyboard.keyboard([
-                        [
-                            Keyboard.textButton({
-                                label: 'Начать общение',
-                                payload: {command: 'chat-room'},
-                                color: Keyboard.POSITIVE_COLOR
-                            })
-                        ]
-                    ])
-            })
-        }
+        await studyBot.api.messages.send({
+            user_ids: [ctx.scene.state.companion.peerId, ctx.session.user.peerId],
+            message: '&#129302; - Собеседник найден.\nНапиши "привет"!',
+            keyboard:
+                Keyboard.keyboard([
+                    [
+                        Keyboard.textButton({
+                            label: 'Закончить общение',
+                            payload: {command: 'leave-chat-room'},
+                            color: Keyboard.NEGATIVE_COLOR
+                        })
+                    ]
+                ])
+        })
 
         return ctx.scene.leave()
     }
 ])
-
-/**
- * Диалог с пользователем
- **/
-studyBot.scene('chat-room-scene', [
-    /**
-     * Шаг 1
-     * - Приветсвенный шаг
-     **/
-    async (ctx: Context) => {
-
-        if (ctx.scene.step.firstTime || !ctx.text) {
-
-            const dialogRepository = await getCustomRepository(DialogRepository)
-            await dialogRepository.createOrUpdate({user: ctx.session.user, search: "ready"})
-
-            ctx.scene.state.dialog = await dialogRepository.find({
-                user: ctx.session.user
-            })
-
-            await ctx.send({
-                message: '&#129302; - Приятного общения.\nЧто бы покинуть чат нажмите кнопку "Покинуть беседу".',
-                keyboard:
-                    Keyboard.keyboard([
-                        [
-                            Keyboard.textButton({
-                                label: 'Покинуть беседу',
-                                payload: {command: 'exit'},
-                                color: Keyboard.NEGATIVE_COLOR
-                            })
-                        ]
-                    ])
-            })
-        }
-
-        return await ctx.scene.step.next()
-
-    },
-    /**
-     * Шаг 2
-     * - Идёт общение
-     **/
-    async (ctx: Context) => {
-
-        const {dialog} = ctx.scene.state
-        if (!ctx.messagePayload && (ctx.text || ctx.attachments)) {
-
-            if (!ctx.scene.state.ready) {
-                const dialogRepository = await getCustomRepository(DialogRepository)
-                const dialogCompanion = await dialogRepository.find({
-                    companion: ctx.session.user
-                })
-
-                if (dialogCompanion && dialogCompanion.search === 'ready') {
-                    ctx.scene.state.ready = true
-                } else {
-                    await studyBot.api.messages.send({
-                        peer_id: dialog.companion.peerId,
-                        message: `&#129302; - Ваш собеседник все еще ждёт пока вы нажмете кнопку "Начать общение", он написал вам:\n &#${dialog.smile}; - ${ctx.text}`
-                    })
-                    return ctx.send({
-                        message: '&#129302; - Собеседник еще не нажал кнопку "Начать общение". Но я ему напомнил об этом'
-                    })
-                }
-            }
-
-            if (ctx.scene.state.ready) {
-                const {attachments, text} = ctx
-
-                const message: MessagesSendParams = {
-                    dont_parse_links: true,
-                    peer_id: dialog.companion.peerId,
-                }
-
-                message['message'] = text?`&#${dialog.smile}; - ${text}`:`&#${dialog.smile};`
-
-                if(attachments.length > 0){
-
-                    const attach = []
-
-                    await attachments.forEach(attachment => {
-
-                        if(attachment instanceof StickerAttachment){
-                            return message['sticker_id'] = attachment.id
-                        }
-
-                        if(attachment instanceof PhotoAttachment || attachment instanceof VideoAttachment){
-                            attach.push(attachment.toString())
-                        }
-
-                    })
-
-                    message['attachment'] = attach.toString()
-                    console.log(message['attachment'])
-                }
-
-                return studyBot.api.messages.send(message)
-            }
-        }
-
-        if (ctx.messagePayload) {
-            if (ctx.messagePayload.command === 'search-companion') return ctx.scene.enter('search-companion-scene')
-            if (ctx.messagePayload.command === 'exit') {
-
-                const dialogRepository = await getCustomRepository(DialogRepository)
-
-                await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: null})
-                await dialogRepository.createOrUpdate({user: dialog.companion, companion: null, search: null})
-
-                await studyBot.api.messages.send({
-                    peer_id: dialog.companion.peerId,
-                    message: "&#129302; - Собеседник покинул чат.",
-                    keyboard:
-                        Keyboard.keyboard([
-                            [
-                                Keyboard.textButton({
-                                    label: 'Вернуться к поиску',
-                                    payload: {command: 'search-companion'},
-                                    color: Keyboard.PRIMARY_COLOR
-                                })
-                            ]
-                        ])
-                })
-
-                return ctx.scene.enter('search-companion-scene')
-            }
-        }
-
-    }
-])
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**
@@ -714,77 +667,21 @@ studyBot.scene('more-scene', [
                 keyboard: Keyboard.keyboard([
                     [
                         Keyboard.textButton({
-                            label: 'К расписанию',
+                            label: '&#128218; Вернутся к расписанию',
                             payload: {command: 'to-timetable'},
                             color: Keyboard.NEGATIVE_COLOR
                         }),
                         Keyboard.textButton({
-                            label: 'Погода',
-                            payload: {command: 'to-weather'},
-                            color: Keyboard.POSITIVE_COLOR
-                        })
-                    ],
-                    [
-                        Keyboard.textButton({
-                            label: 'Анонимный чат (Beta)',
-                            payload: {command: 'search-companion'},
-                            color: Keyboard.PRIMARY_COLOR
-                        }),
-                        Keyboard.textButton({
-                            label: 'Настройки',
+                            label: '&#9889; Настройки',
                             payload: {command: 'to-settings'},
                             color: Keyboard.NEGATIVE_COLOR
                         })
-                    ]
-                ])
-            })
-        }
-
-        return ctx.scene.leave()
-    }
-])
-
-
-/**
- * Сцена с погодой
- **/
-studyBot.scene('weather-scene', [
-    /**
-     * Шаг 1
-     * - Отправляем приветсвие с клавиатурой расписания
-     **/
-    async (ctx) => {
-        if (ctx.scene.step.firstTime || !ctx.text) {
-            await ctx.send({
-                message: 'На какой день прислать погоду?',
-                keyboard: Keyboard.keyboard([
-                    [
-                        Keyboard.textButton({
-                            label: 'К расписанию',
-                            payload: {command: 'to-timetable'},
-                            color: Keyboard.NEGATIVE_COLOR
-                        }),
-                        Keyboard.textButton({
-                            label: 'Сегодня',
-                            payload: {command: 'today-weather'},
-                            color: Keyboard.POSITIVE_COLOR
-                        }),
-                        Keyboard.textButton({
-                            label: 'Завтра',
-                            payload: {command: 'tomorrow-weather'},
-                            color: Keyboard.PRIMARY_COLOR
-                        }),
                     ],
                     [
                         Keyboard.textButton({
-                            label: 'Послезавтра',
-                            payload: {command: 'after-tomorrow-weather'},
-                            color: Keyboard.NEGATIVE_COLOR
-                        }),
-                        Keyboard.textButton({
-                            label: 'На эту неделю',
-                            payload: {command: 'week-weather'},
-                            color: Keyboard.POSITIVE_COLOR
+                            label: '&#9996; Анонимный чат (Beta)',
+                            payload: {command: 'search-companion'},
+                            color: Keyboard.PRIMARY_COLOR
                         })
                     ]
                 ])
@@ -794,6 +691,7 @@ studyBot.scene('weather-scene', [
         return ctx.scene.leave()
     }
 ])
+
 
 /**
  * Сцена с настройками бота
@@ -804,30 +702,50 @@ studyBot.scene('settings-scene', [
      * - Спрашиваем что хочет пользователь настройть
      **/
     async (ctx: Context) => {
+
+        const keyboards = [
+            [
+                Keyboard.textButton({
+                    label: '&#128218; Вернутся к расписанию',
+                    payload: {command: 'to-timetable'},
+                    color: Keyboard.NEGATIVE_COLOR
+                }),
+                Keyboard.textButton({
+                    label: '&#128296; Обновить мой данные',
+                    payload: {command: 'register'},
+                    color: Keyboard.PRIMARY_COLOR
+                })
+            ]
+        ]
+
         if (ctx.scene.step.firstTime || !ctx.text) {
+
+            const userRepository = await getCustomRepository(UserRepository)
+            const user = await userRepository.find({
+                peerId: ctx.session.user.peerId
+            })
+
+            if (user.autoLink) {
+                keyboards.push([
+                    Keyboard.textButton({
+                        label: '&#128277; Отписаться от рассылки',
+                        payload: {command: 'unsubscribe'},
+                        color: Keyboard.NEGATIVE_COLOR
+                    })
+                ])
+            } else {
+                keyboards.push([
+                    Keyboard.textButton({
+                        label: '&#128276; Подписаться на рассылку',
+                        payload: {command: 'subscribe'},
+                        color: Keyboard.POSITIVE_COLOR
+                    })
+                ])
+            }
+
             await ctx.send({
                 message: 'Что вы хотите настройть?',
-                keyboard: Keyboard.keyboard([
-                    [
-                        Keyboard.textButton({
-                            label: 'К расписанию',
-                            payload: {command: 'to-timetable'},
-                            color: Keyboard.NEGATIVE_COLOR
-                        }),
-                        Keyboard.textButton({
-                            label: 'Обновить данные',
-                            payload: {command: 'register'},
-                            color: Keyboard.POSITIVE_COLOR
-                        })
-                    ],
-                    [
-                        Keyboard.textButton({
-                            label: 'Рассылка расписания',
-                            payload: {command: 'auto-link'},
-                            color: Keyboard.PRIMARY_COLOR
-                        })
-                    ]
-                ])
+                keyboard: Keyboard.keyboard(keyboards)
             })
         }
 
