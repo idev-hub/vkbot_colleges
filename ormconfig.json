@@ -2,9 +2,9 @@
     "type": "mysql",
     "host": "z92271qa.beget.tech",
     "port": 3306,
-    "username": "z92271qa_tablevk",
+    "username": "z92271qa_testbot",
     "password": "7vg7tek7sG",
-    "database": "z92271qa_tablevk",
+    "database": "z92271qa_testbot",
     "entities": [
         "dist/module/database/entities/**/*.js"
     ],

@@ -1,23 +1,52 @@
 import axios from 'axios'
-import configs from "../../../configs";
+import Typify from "../../../utils/Typify";
+import {User} from "../../database/entities/User";
+import {ETypeParse} from "../../database/entities/College";
+import {Context} from "vk-io";
+import Luxon from "../../../utils/Luxon";
+
+/**
+ * Функция получение расписания занятий через API к источнику
+ * @param user {User} - Пользователь
+ * @param date {string} - Дата
+ * @returns {Promise<Array<object>>} Массив расписания учебного учреждения
+ **/
+export const jsonParse = async (user: User, date: string) => {
+    const scheme = user['college']['params']['scheme']['params']
+    const params = {}
+
+    Object.keys(scheme).map((param) => {
+        if (scheme[param] === "d") params[param] = date
+        else if (scheme[param] === "g") params[param] = user.group
+    })
+
+    const json = await axios({
+        method: user['college']['params']['scheme']['method'],
+        url: user['college']['params']['api'],
+        params: params,
+        responseType: 'json'
+    })
+
+    if (!json.data) return null
+    return new Typify(json.data, user['college']['params']['scheme']['toJson']).typifyJson()
+}
+
+export const bodyParse = async (user: User, date: string) => {
+    return null
+}
 
 
 /**
- * Отправляет запрос по внутренему серверу для получения расписания занятий
- * @param _params {object} Входные данные
+ * Получение расписания
  * @returns {Promise<string>} Преобразованное в строку расписание
+ * @param user
+ * @param date
  **/
-export const getTimetable = async (_params: object = {}):Promise<string> => {
-    try {
-        const res = await axios.get(`${configs.database.uri}/api/timetable`, {
-            params: _params
-        })
-        if (res.data) return toMessageTimetable(res.data)
+export const getTimetable = async (user: User, date: string):Promise<string> => {
+    const result = user.college.params.type === ETypeParse.jsonParse ? await jsonParse(user, date) : await bodyParse(user, date)
 
-        return "- Я не смог найти расписание на этот день."
-    } catch (err) {
-        return err
-    }
+    if(!result) return "- Я не смог найти расписание на этот день."
+    return toMessageTimetable(result)
 }
 
 /**
@@ -30,10 +59,10 @@ export const toMessageTimetable = (_object: object): string => {
     const tp = (_obj): string => {
         let msg = ""
         for (let key in _obj) {
-            if (key === "number") msg += "Номер занятия: " + _obj["number"] + "\n"
-            if (key === "teacher") msg += "Преподователь: " + _obj["teacher"] + "\n"
-            if (key === "location") msg += "Местоположение: " + _obj["location"] + "\n"
-            if (key === "discipline") msg += "Дисциплина: " + _obj["discipline"] + "\n"
+            if (key === "number" && (_obj["number"] !== "" && _obj["number"] !== null && _obj["number"] !== undefined)) msg += "Номер занятия: " + _obj["number"] + "\n"
+            if (key === "teacher" && (_obj["teacher"] !== "" && _obj["teacher"] !== null && _obj["teacher"] !== undefined)) msg += "Преподователь: " + _obj["teacher"] + "\n"
+            if (key === "location" && (_obj["location"] !== "" && _obj["location"] !== null && _obj["location"] !== undefined)) msg += "Местоположение: " + _obj["location"] + "\n"
+            if (key === "discipline" && (_obj["discipline"] !== "" && _obj["discipline"] !== null && _obj["discipline"] !== undefined)) msg += "Дисциплина: " + _obj["discipline"] + "\n"
         }
         return msg || null
     }
@@ -47,4 +76,15 @@ export const toMessageTimetable = (_object: object): string => {
     } else {
         return tp(_object)
     }
+}
+
+/**
+ * Получение готового к отправке расписания занятий
+ * @param ctx {Context}
+ * @param date {Luxon}
+ * @returns {Promise<string>}
+ **/
+export const getCompleteTimetable = async (ctx: Context, date: Luxon = new Luxon()): Promise<string> => {
+    const {user} = ctx.session
+    return (date.week() !== 7) ? await getTimetable(user, date.pin()) : "- Этот день выходной, расписания нет."
 }

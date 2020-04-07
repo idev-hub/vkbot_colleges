@@ -2,33 +2,41 @@ import {Context, Keyboard} from "vk-io";
 import {DateTime} from 'luxon';
 import {studyBot} from "..";
 import Luxon from "../../../utils/Luxon";
-import {getTimetable} from "../services/colleges";
+import {getCompleteTimetable} from "../services/colleges";
 import RSSParser from "../../../utils/RSSParser";
 import {getCustomRepository} from "typeorm";
-import {DialogRepository} from "../../database/repositories/DialogRepository";
 import {UserRepository} from "../../database/repositories/UserRepository";
 
 /**
- * Шаблон для комманды расписания
- * @param ctx {Context}
- * @param date {Luxon}
- * @returns {Promise<string>}
+ * Команда для связи с разработчиком
  **/
-const timetableTemplate = async (ctx: Context, date: Luxon = new Luxon()): Promise<string> => {
-    const {user} = ctx.session
+studyBot.command('contact', ['связаться'], async (ctx: Context) => {
 
-    return (date.week() !== 7) ? await getTimetable({
-        user: user,
-        date: date.pin(),
-    }) : "- Этот день выходной, расписания нет."
-}
+    const userRepository = await getCustomRepository(UserRepository)
+    const users = await userRepository.search({role: 9})
+
+    for (const user of users) {
+
+        try {
+            await studyBot.api.messages.send({
+                user_id: user.peerId,
+                message: `Пользователь @id${ctx.peerId} попросил связаться с ним.\n\nСсылка на чат: vk.com/gim${ctx.$groupId}?sel=${ctx.peerId}`,
+            })
+        } catch (error) {
+            console.error({error})
+        }
+
+    }
+
+    return ctx.send(`Заявка успешно отправлена.`)
+})
 
 /**
  * Команда получения расписания за ВЧЕРА
  **/
-studyBot.command('yesterday', ['вчера', 'Вчера', 'в'], async (ctx: Context) => {
+studyBot.command('yesterday', ['вчера', 'в'], async (ctx: Context) => {
     let date = new Luxon().subtract(24)
-    const template = await timetableTemplate(ctx, date)
+    const template = await getCompleteTimetable(ctx, date)
 
     return ctx.send({
         message: `&#128217; Расписание на "Вчера" - "${date.pin()}" для группы "${ctx.session.user.group}"\n\n${template}`,
@@ -52,9 +60,9 @@ studyBot.command('yesterday', ['вчера', 'Вчера', 'в'], async (ctx: Co
 /**
  * Команда получения расписания за СЕГОДНЯ
  **/
-studyBot.command('today', ['сегодня', 'Сегодня', 'с'], async (ctx: Context) => {
+studyBot.command('today', ['сегодня', 'с'], async (ctx: Context) => {
     let date = new Luxon()
-    const template = await timetableTemplate(ctx, date)
+    const template = await getCompleteTimetable(ctx, date)
 
     return ctx.send({
         message: `&#128217; Расписание на "Сегодня" - "${date.pin()}" для группы "${ctx.session.user.group}"\n\n${template}`,
@@ -78,9 +86,9 @@ studyBot.command('today', ['сегодня', 'Сегодня', 'с'], async (ctx
 /**
  * Команда получения расписания на ЗАВТРА
  **/
-studyBot.command('tomorrow', ['завтра', 'Завтра', 'з'], async (ctx: Context) => {
+studyBot.command('tomorrow', ['завтра', 'з'], async (ctx: Context) => {
     let date = new Luxon().add(24)
-    const template = await timetableTemplate(ctx, date)
+    const template = await getCompleteTimetable(ctx, date)
 
     return ctx.send({
         message: `&#128217; Расписание на "Завтра" - "${date.pin()}" для группы "${ctx.session.user.group}"\n\n${template}`,
@@ -104,9 +112,9 @@ studyBot.command('tomorrow', ['завтра', 'Завтра', 'з'], async (ctx:
 /**
  * Команда получения расписания на ПОСЛЕЗАВТРА
  **/
-studyBot.command('after-tomorrow', ['послезавтра', 'Послезавтра', 'пз'], async (ctx: Context) => {
+studyBot.command('after-tomorrow', ['послезавтра', 'пз'], async (ctx: Context) => {
     let date = new Luxon().add(48)
-    const template = await timetableTemplate(ctx, date)
+    const template = await getCompleteTimetable(ctx, date)
 
     return ctx.send({
         message: `&#128217; Расписание на "Послезавтра" - "${date.pin()}" для группы "${ctx.session.user.group}"\n\n${template}`,
@@ -130,42 +138,29 @@ studyBot.command('after-tomorrow', ['послезавтра', 'Послезав�
 /**
  * Команда перехода на сцену с расписанием занятий
  **/
-studyBot.command('to-timetable', ['/main'], async (ctx: Context) => ctx.scene.enter('timetable-scene'))
+studyBot.command('to-timetable', ['расписание', 'расп'], async (ctx: Context) => ctx.scene.enter('timetable-scene'))
 
 /**
  * Команда перехода на сцену с регистрацией ( работает как функция обновления и создания данных о пользователе )
  **/
-studyBot.command('register', ['/update'], (ctx: Context) => ctx.scene.enter('register-scene'))
+studyBot.command('register', ['обновить'], (ctx: Context) => ctx.scene.enter('register-scene'))
 
 /**
  * Команда перехода на сцену с настройками пользователя
  **/
-studyBot.command('to-settings', ['/settings'], (ctx: Context) => ctx.scene.enter('settings-scene'))
+studyBot.command('to-settings', ['настройки'], (ctx: Context) => ctx.scene.enter('settings-scene'))
 
 /**
  * Команда перехода на сцену с доп. функционалом
  **/
-studyBot.command('to-more', ['/more'], (ctx: Context) => ctx.scene.enter('more-scene'))
+studyBot.command('to-more', ['еще', 'ещё'], (ctx: Context) => ctx.scene.enter('more-scene'))
 
-
-/**
- * Команды чата
- * @beta
- **/
-studyBot.command('search-companion', ['/search'], (ctx: Context) => ctx.scene.enter('search-companion-scene'))
-studyBot.command('chat-room', ['/room'], (ctx: Context) => ctx.scene.enter('chat-room-scene'))
-studyBot.command('cancel-search-companion', ['/cancel-search-companion'], async (ctx: Context) => {
-    const dialogRepository = await getCustomRepository(DialogRepository)
-
-    await dialogRepository.createOrUpdate({user: ctx.session.user, companion: null, search: null})
-    return ctx.scene.enter('search-companion-scene')
-})
 
 /**
  * Подписка на авторассылку
  * @beta
  **/
-studyBot.command('subscribe', ['/subscribe'], async (ctx: Context) => {
+studyBot.command('subscribe', ['подписаться'], async (ctx: Context) => {
     const userRepository = await getCustomRepository(UserRepository)
     await userRepository.createOrUpdate({peerId: ctx.session.user.peerId, autoLink: true})
     await ctx.send({
@@ -178,13 +173,25 @@ studyBot.command('subscribe', ['/subscribe'], async (ctx: Context) => {
  * Отписка от авторассылки
  * @beta
  **/
-studyBot.command('unsubscribe', ['/unsubscribe'], async (ctx: Context) => {
+studyBot.command('unsubscribe', ['описаться'], async (ctx: Context) => {
     const userRepository = await getCustomRepository(UserRepository)
     await userRepository.createOrUpdate({peerId: ctx.session.user.peerId, autoLink: false})
     await ctx.send({
         message: `Вы успешно отписались от авторассылки расписания.`
     })
     return ctx.scene.enter('timetable-scene')
+})
+
+/**
+ * Команда вызова помощи
+ **/
+studyBot.command('help', ['help', 'помощь'], async (ctx: Context) => {
+    return ctx.send(`
+        Справка по командам:\n
+        - "завтра" или "з", "сегодня" или "с", "послезавтра" или "пз", "вчера" или "в" - Получение расписания занятий на заданый день\n
+        - "обновить" - обновить свой данные\n
+        - "подписаться" или "отписаться" - подписка или отписка от ежедневой рассылки расписания занятий. (в 19:00 по Москве)
+    `)
 })
 
 /**

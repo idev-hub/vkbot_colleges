@@ -2,6 +2,7 @@ import {Connection, createConnection, getConnectionOptions, getCustomRepository}
 import {CollegeRepository} from "../repositories/CollegeRepository";
 import {Keyboard} from "vk-io";
 import {CityRepository} from "../repositories/CityRepository";
+import {ETypeParse} from "../entities/College";
 
 export default class Storage {
 
@@ -28,8 +29,7 @@ export default class Storage {
                     uri: "chgpgt.ru",
                     city: chelyabinsk,
                     params: {
-                        type: "jsonParse",
-                        api: 'http://www.chgpgt.ru/systems/raspisanieapi.html',
+                        type: ETypeParse.jsonParse,
                         keyboards: [
                             [
                                 Keyboard.textButton({
@@ -61,6 +61,7 @@ export default class Storage {
                                 })
                             ]
                         ],
+                        api: 'http://www.chgpgt.ru/systems/raspisanieapi.html',
                         scheme: {
                             method: 'GET',
                             params: {

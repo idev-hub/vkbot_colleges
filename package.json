@@ -21,10 +21,12 @@
         "@vk-io/scenes": "0.0.0-alpha.5",
         "@vk-io/session": "0.0.0-alpha.3",
         "axios": "^0.19.2",
-        "cron": "^1.8.2",
+        "cheerio": "^1.0.0-rc.3",
         "luxon": "^1.22.0",
         "mysql2": "^2.1.0",
+        "node-cron": "^2.0.3",
         "reflect-metadata": "^0.1.13",
+        "request": "^2.88.2",
         "restify": "^8.5.1",
         "rss-parser": "^3.7.6",
         "sequelize": "^5.21.5",
@@ -33,7 +35,9 @@
     },
     "devDependencies": {
         "@types/bluebird": "^3.5.30",
+        "@types/cheerio": "^0.22.17",
         "@types/node": "^13.9.1",
+        "@types/request": "^2.48.4",
         "nodemon": "^2.0.2",
         "typescript": "^3.8.3"
     }

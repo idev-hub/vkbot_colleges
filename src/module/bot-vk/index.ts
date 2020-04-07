@@ -5,5 +5,8 @@ export const studyBot = new VKBot(studyBotConfigs)
 
 import ('./scenes')
 import ('./commands')
-import {cron} from './services/cron'
-cron.start()
+import {timetable, updateStatus, news} from './services/cron'
+
+timetable.start()
+updateStatus.start()
+news.start()

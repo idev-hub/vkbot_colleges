@@ -4,7 +4,7 @@ import {User} from "../../database/entities/User";
 import {UserRepository} from "../../database/repositories/UserRepository";
 
 /**
- * Проверяет существование пользователя в текущей сессий, если не находит запрашивает информацию о нем в юазе данных
+ * Проверяет существование пользователя в текущей сессий, если не находит запрашивает информацию о нем в базе данных
  * @param _ctx {Context} Context
  * @returns {Promise<User>} Пользователь
  **/

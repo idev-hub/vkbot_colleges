@@ -1,14 +1,12 @@
 import {studyBot} from "./module/bot-vk";
 import {storage} from "./module/database";
-import {server} from "./module/server";
 
 /**
  * Функция по поочередному запуску проекта
  **/
 const appStart = async () => {
     await storage.connect() // Запускаем базу данных
-    await server.run() // Запускаем сервер
-    await studyBot.updates.startPolling() // Запускаем бота
+    await studyBot.updates.start() // Запускаем бота
 }
 
-appStart().then(() => console.info("Application running")).catch(console.error)
+appStart().then(() => console.info("Application running")).catch((error) => console.error({error}))
